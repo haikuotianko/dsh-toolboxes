@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工具箱 · 让 AI 直接调用 ffmpeg / rg / fd / jq</title>
+<meta name="description" content="一个 MCP 工具箱：按系统下载命令行工具并登记成 AI 可调用的工具，附带一个能实时看到命令运行、下载进度与速度的管理页。">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧰</text></svg>">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #111621;
+    --panel-2: #0e131c;
+    --line: #222a38;
+    --text: #e6e9ef;
+    --muted: #8b95a7;
+    --brand: #5b9dff;
+    --brand-dim: #2a4a7a;
+    --ok: #34d399;
+    --warn: #fbbf24;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(1100px 500px at 50% -200px, #16233a 0%, transparent 70%),
+      var(--bg);
+    color: var(--text);
+    font: 15px/1.65 -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  a { color: var(--brand); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { width: min(1080px, calc(100% - 40px)); margin: 0 auto; }
+  code, pre, kbd { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; }
+
+  /* nav */
+  nav.top {
+    position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(12px);
+    background: rgba(11, 14, 20, .78);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.top .inner { display: flex; align-items: center; gap: 18px; height: 58px; }
+  nav.top .brand { font-weight: 700; letter-spacing: .3px; }
+  nav.top .brand span { color: var(--brand); }
+  nav.top .links { display: flex; gap: 18px; margin-left: auto; font-size: 14px; }
+  nav.top .links a { color: var(--muted); }
+  nav.top .links a:hover { color: var(--text); text-decoration: none; }
+  nav.top .gh {
+    font-size: 13.5px; padding: 6px 12px; border: 1px solid var(--line);
+    border-radius: 999px; color: var(--text);
+  }
+  @media (max-width: 720px) { nav.top .links { display: none; } }
+
+  /* hero */
+  header.hero { padding: 76px 0 34px; text-align: center; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12.5px; color: var(--muted); border: 1px solid var(--line);
+    background: rgba(17, 22, 33, .7); padding: 5px 12px; border-radius: 999px;
+  }
+  .pill b { color: var(--ok); font-weight: 600; }
+  h1 {
+    font-size: clamp(30px, 5vw, 48px);
+    line-height: 1.18; margin: 20px 0 14px; letter-spacing: -.5px;
+  }
+  h1 em { font-style: normal; color: var(--brand); }
+  .lead { color: var(--muted); font-size: clamp(15px, 1.6vw, 17px); max-width: 700px; margin: 0 auto; }
+  .cta { display: flex; gap: 12px; justify-content: center; margin: 28px 0 0; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 10px; border: 1px solid var(--line);
+    color: var(--text); font-size: 14.5px; background: var(--panel);
+  }
+  .btn:hover { text-decoration: none; border-color: var(--brand-dim); }
+  .btn.primary { background: linear-gradient(180deg, #6aa8ff, #3f7fe0); border-color: transparent; color: #06101f; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.06); }
+
+  /* terminal mock */
+  .term {
+    margin: 38px auto 0; width: min(820px, 100%); text-align: left;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: 0 30px 70px -30px #000;
+    overflow: hidden;
+  }
+  .term .bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--line); background: #0c111a; }
+  .term .dot { width: 10px; height: 10px; border-radius: 50%; background: #2c3444; }
+  .term .bar span { margin-left: 8px; font-size: 12px; color: var(--muted); }
+  .term pre { margin: 0; padding: 16px 18px; font-size: 12.8px; line-height: 1.7; overflow-x: auto; }
+  .term .g { color: var(--ok); } .term .b { color: var(--brand); } .term .m { color: var(--muted); } .term .y { color: var(--warn); }
+
+  /* sections */
+  section { padding: 54px 0; }
+  h2 { font-size: clamp(22px, 3vw, 28px); margin: 0 0 8px; letter-spacing: -.3px; }
+  .sub { color: var(--muted); margin: 0 0 26px; }
+
+  .grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+  .card {
+    background: linear-gradient(180deg, rgba(19, 24, 35, .9), rgba(14, 19, 28, .9));
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 20px;
+  }
+  .card h3 { margin: 0 0 6px; font-size: 15.5px; }
+  .card p { margin: 0; color: var(--muted); font-size: 13.8px; }
+  .card .ico { font-size: 18px; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .tabs button {
+    font: inherit; font-size: 13.5px; padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    color: var(--muted); background: transparent; border: 1px solid var(--line);
+  }
+  .tabs button[aria-selected="true"] { color: #06101f; background: var(--brand); border-color: var(--brand); font-weight: 600; }
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .codewrap { position: relative; }
+  pre.code {
+    margin: 0; padding: 16px 18px; background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 12px; font-size: 13px; line-height: 1.7; overflow-x: auto; color: #d7deea;
+  }
+  pre.code .c { color: #6b7788; }
+  .copy {
+    position: absolute; top: 10px; right: 10px; font: inherit; font-size: 12px;
+    padding: 4px 10px; border-radius: 7px; cursor: pointer;
+    color: var(--muted); background: #151b26; border: 1px solid var(--line);
+  }
+  .copy:hover { color: var(--text); }
+
+  /* downloads */
+  .dl { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .dl .item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .dl .item .os { font-weight: 600; font-size: 14.5px; }
+  .dl .item .file { color: var(--muted); font-size: 12px; margin: 3px 0 12px; word-break: break-all; }
+  .dl .item .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dl .item a.small { font-size: 12.5px; color: var(--muted); }
+  .dl .item a.small:hover { color: var(--text); }
+  .hint { font-size: 12.8px; color: var(--muted); margin-top: 14px; }
+
+  /* security */
+  .warnbox { border: 1px solid #3a2f1a; background: #17130b; border-radius: 12px; padding: 18px 20px; }
+  .warnbox h3 { margin: 0 0 8px; font-size: 15px; color: var(--warn); }
+  .warnbox ul { margin: 0; padding-left: 18px; color: #c9cfda; font-size: 13.8px; }
+  .warnbox li { margin: 6px 0; }
+
+  footer { border-top: 1px solid var(--line); padding: 26px 0 40px; color: var(--muted); font-size: 13px; }
+  footer .inner { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap inner">
+    <div class="brand">🧰 工具<span>箱</span></div>
+    <div class="links">
+      <a href="#features">功能</a>
+      <a href="#install">安装</a>
+      <a href="#download">下载</a>
+      <a href="#ai">接入 AI</a>
+      <a href="#security">安全</a>
+    </div>
+    <a class="gh" href="https://github.com/haikuotianko/dsh-toolboxes">GitHub ↗</a>
+  </div>
+</nav>
+
+<header class="hero wrap">
+  <div class="pill">v0.2.0 · MIT · <b>MCP</b> · Windows / macOS / Linux</div>
+  <h1>让 AI 直接调用 <em>ffmpeg</em>、<em>ripgrep</em>、<em>jq</em>…</h1>
+  <p class="lead">
+    一个 MCP 服务器 + 一个管理页：按当前系统下载命令行工具、登记成 AI 能直接调用的工具，
+    并把“它正在跑什么、跑到哪、多快”实时显示出来。转码、抽帧、批量改名、搜代码、下载媒体，
+    不用再让 AI 现场写脚本。
+  </p>
+  <div class="cta">
+    <a class="btn primary" href="#install">开始使用 →</a>
+    <a class="btn" href="https://github.com/haikuotianko/dsh-toolboxes/releases/tag/v0.2.0">查看 Release</a>
+  </div>
+
+  <div class="term">
+    <div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>toolbox -ui</span></div>
+<pre><span class="m">$</span> toolbox -ui
+  toolbox ui: http://127.0.0.1:51234  (root ~/.dsh/dsh-toolbox)
+
+<span class="b">命令运行 · 1 运行中</span>
+▸ yt-dlp  -f best  https://…/clip.mp4          <span class="y">运行中 · 12s</span>  <span class="m">AI</span>   取消
+  <span class="g">[download]  62.4% of 118.42MiB at 3.27MiB/s ETA 00:14</span>
+
+▸ ffmpeg  -i in.mov -c:v libx264 out.mp4       <span class="m">完成 · 41s</span>   <span class="m">AI</span>
+  frame= 1832 fps=44 q=28 size=31.2MB time=00:01:23.20 bitrate=3.1Mbit/s</pre>
+  </div>
+</header>
+
+<section id="features" class="wrap">
+  <h2>为什么不是“让 AI 写个脚本”</h2>
+  <p class="sub">脚本每次都要重写、每次都可能踩同一个坑；工具箱把工具、安装和运行记录一次性解决。</p>
+  <div class="grid">
+    <div class="card"><div class="ico">📦</div><h3>一条命令装好</h3><p>ffmpeg / ripgrep / fd / jq / yt-dlp 按系统自动挑包，多源失败自动重试，装完直接可调用。</p></div>
+    <div class="card"><div class="ico">🖥️</div><h3>看得见 AI 在跑什么</h3><p>所有正在执行的命令集中列出，带工具、参数、耗时；随时展开控制台或一键取消（连子进程）。</p></div>
+    <div class="card"><div class="ico">📈</div><h3>进度条不刷屏</h3><p>按终端语义处理 <code>\r</code>：yt-dlp、curl、ffmpeg 的百分比、速度、ETA 在同一行实时刷新。</p></div>
+    <div class="card"><div class="ico">🔌</div><h3>不绑宿主</h3><p>同一份 MCP 服务给 DeepSeek Harness、Claude Code、opencode、Codex 用，换宿主不用重写工具层。</p></div>
+    <div class="card"><div class="ico">🗂️</div><h3>脚本也能归档</h3><p>AI 写的通用脚本可以存进工具箱，之后像普通工具一样调用，不必每次从零开始。</p></div>
+    <div class="card"><div class="ico">🔐</div><h3>能给的可验证</h3><p>目录条目支持 <code>sha256</code>，下载后先校验再解包执行；不匹配直接拒绝。</p></div>
+  </div>
+</section>
+
+<section id="install" class="wrap">
+  <h2>安装</h2>
+  <p class="sub">选一种就行。装好的可执行文件叫 <code>toolbox</code>（Windows 是 <code>toolbox.exe</code>）。</p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="win">Windows</button>
+    <button role="tab" aria-selected="false" data-tab="mac">macOS</button>
+    <button role="tab" aria-selected="false" data-tab="linux">Linux</button>
+    <button role="tab" aria-selected="false" data-tab="dsh">DeepSeek Harness 插件</button>
+    <button role="tab" aria-selected="false" data-tab="go">Go / 源码</button>
+  </div>
+
+  <div class="panel on" data-panel="win">
+    <div class="codewrap">
+      <button class="copy">复制</button>
+<pre class="code"><span class="c"># 1. 下载并解压到任意目录，例如 D:\tools\toolbox</span>
+<span class="c">#    https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip</span>
+<span class="c"># 2. 把该目录加进 PATH，然后：</span>
+toolbox -version
+toolbox -ui        <span class="c"># 打开管理页</span>
+
+<span class="c"># 3. 注册到你的 MCP 客户端（管理页里「接入 AI」可一键生成）</span>
+toolbox -setup -patch "&lt;profile&gt;\node_modules\dsh-toolboxes\cordis.patch.yml"</pre>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="mac">
+    <div class="codewrap">
+      <button class="copy">复制</button>
+<pre class="code"><span class="c"># Apple Silicon 用 toolbox-darwin-arm64.zip，Intel 用 toolbox-darwin-amd64.zip</span>
+curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip
+unzip -o tb.zip -d ~/bin &amp;&amp; chmod +x ~/bin/toolbox
+<span class="c"># macOS 首次运行若被 Gatekeeper 拦：系统设置 → 隐私与安全性 → 仍要打开</span>
+~/bin/toolbox -version</pre>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="linux">
+    <div class="codewrap">
+      <button class="copy">复制</button>
+<pre class="code"><span class="c"># amd64 / arm64 按机器选</span>
+curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip
+unzip -o tb.zip -d ~/.local/bin &amp;&amp; chmod +x ~/.local/bin/toolbox
+~/.local/bin/toolbox -version</pre>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="dsh">
+    <div class="codewrap">
+      <button class="copy">复制</button>
+<pre class="code">dsh plugin --profile &lt;profile&gt; add dsh-toolboxes
+
+<span class="c"># 插件首次启用时会按平台下载 Release 里的二进制，校验 SHA256SUMS 后缓存到</span>
+<span class="c">#   &lt;toolbox root&gt;\bin\toolbox-v0.2.0.exe</span>
+<span class="c"># 想用自己构建的二进制：设置 TOOLBOX_BIN 指向它</span></pre>
+    </div>
+  </div>
+
+  <div class="panel" data-panel="go">
+    <div class="codewrap">
+      <button class="copy">复制</button>
+<pre class="code">go install github.com/haikuotianko/dsh-toolboxes@latest
+
+<span class="c"># 模块名决定产物名字，装出来叫 dsh-toolboxes；想用文档里的 toolbox 就重命名</span>
+mv "$(go env GOPATH)/bin/dsh-toolboxes" "$(go env GOPATH)/bin/toolbox"</pre>
+    </div>
+  </div>
+</section>
+
+<section id="download" class="wrap">
+  <h2>下载 v0.2.0</h2>
+  <p class="sub">每个包只有一个可执行文件。国内直连 GitHub 慢的话，点「代理下载」——走 gh-proxy 镜像，内容与 SHA256 完全一致。</p>
+
+  <div class="dl">
+    <div class="item">
+      <div class="os">Windows · x64</div>
+      <div class="file">toolbox-windows-amd64.zip · 3.62 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip">直连</a>
+      </div>
+    </div>
+    <div class="item">
+      <div class="os">Windows · arm64</div>
+      <div class="file">toolbox-windows-arm64.zip · 3.24 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-arm64.zip">直连</a>
+      </div>
+    </div>
+    <div class="item">
+      <div class="os">macOS · Apple Silicon</div>
+      <div class="file">toolbox-darwin-arm64.zip · 3.32 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip">直连</a>
+      </div>
+    </div>
+    <div class="item">
+      <div class="os">macOS · Intel</div>
+      <div class="file">toolbox-darwin-amd64.zip · 3.59 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-amd64.zip">直连</a>
+      </div>
+    </div>
+    <div class="item">
+      <div class="os">Linux · x64</div>
+      <div class="file">toolbox-linux-amd64.zip · 3.54 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip">直连</a>
+      </div>
+    </div>
+    <div class="item">
+      <div class="os">Linux · arm64</div>
+      <div class="file">toolbox-linux-arm64.zip · 3.20 MB</div>
+      <div class="acts">
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-arm64.zip">直连</a>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">
+    校验：<a href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/SHA256SUMS">SHA256SUMS（代理）</a>
+    · <a href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/SHA256SUMS">直连</a>。
+    macOS/Linux 下 <code>shasum -a 256 文件名</code> 比对即可。
+  </p>
+</section>
+
+<section id="ai" class="wrap">
+  <h2>接给 AI 用</h2>
+  <p class="sub">管理页能跑，不等于 AI 能用。下面任意一份配置加到你的 MCP 客户端即可。</p>
+
+  <div class="codewrap">
+    <button class="copy">复制</button>
+<pre class="code"><span class="c">// Claude Code / Claude Desktop（claude_desktop_config.json）</span>
+{
+  "mcpServers": {
+    "toolbox": { "command": "toolbox", "args": ["-mcp"] }
+  }
+}
+
+<span class="c">// opencode（opencode.json）</span>
+{
+  "mcp": {
+    "toolbox": { "type": "local", "command": ["toolbox", "-mcp"], "enabled": true }
+  }
+}</pre>
+  </div>
+
+  <p class="hint">
+    DeepSeek Harness 用户：打开管理页 →「接入 AI（MCP）」，点「复制配置」即可拿到带本机真实路径的版本；
+    或用 <code>toolbox -setup -patch &lt;profile&gt;/node_modules/dsh-toolboxes/cordis.patch.yml</code> 一次写好。
+  </p>
+</section>
+
+<section id="security" class="wrap">
+  <h2>安全边界（请先读）</h2>
+  <div class="warnbox">
+    <h3>这个工具会下载并执行程序</h3>
+    <ul>
+      <li>它按目录里的 URL 下载可执行文件、解包、直接运行，<b>不经过任何沙箱</b>，权限等于运行它的用户。</li>
+      <li>目录条目写了 <code>sha256</code> 才会校验；没写时，信任完全建立在 URL 上。企业环境建议自建镜像并补校验和。</li>
+      <li>内置目录里个别下载源走了第三方 GitHub 镜像；介意的话在 <code>&lt;root&gt;/catalog.json</code> 覆盖成官方地址。</li>
+      <li>管理页只监听回环地址（127.0.0.1），不提供远程访问，不要反代到公网。</li>
+    </ul>
+  </div>
+  <p class="hint">漏洞报告方式见 <a href="https://github.com/haikuotianko/dsh-toolboxes/blob/main/SECURITY.md">SECURITY.md</a>。</p>
+</section>
+
+<footer>
+  <div class="wrap inner">
+    <span>© 2026 haikuotianko · MIT License</span>
+    <span style="margin-left:auto"></span>
+    <a href="https://github.com/haikuotianko/dsh-toolboxes">GitHub</a>
+    <a href="https://github.com/haikuotianko/dsh-toolboxes/releases">Releases</a>
+    <a href="https://github.com/haikuotianko/dsh-toolboxes/issues">Issues</a>
+    <a href="https://www.npmjs.com/package/dsh-toolboxes">npm</a>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.tabs button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var key = btn.dataset.tab;
+      document.querySelectorAll('.tabs button').forEach(function (b) { b.setAttribute('aria-selected', String(b === btn)); });
+      document.querySelectorAll('.panel').forEach(function (p) { p.classList.toggle('on', p.dataset.panel === key); });
+    });
+  });
+
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pre = btn.parentElement.querySelector('pre');
+      if (!pre) return;
+      var text = pre.innerText;
+      var done = function () { btn.textContent = '已复制'; setTimeout(function () { btn.textContent = '复制'; }, 1800); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, fallback);
+      } else { fallback(); }
+      function fallback() {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) { btn.textContent = '复制失败'; }
+        document.body.removeChild(ta);
+      }
+    });
+  });
+</script>
+</body>
+</html>

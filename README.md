@@ -4,6 +4,8 @@
 [![release](https://img.shields.io/github/v/release/haikuotianko/dsh-toolboxes)](https://github.com/haikuotianko/dsh-toolboxes/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**官网**：<https://haikuotianko.github.io/dsh-toolboxes/>（国内打不开可用 [jsDelivr 镜像](https://cdn.jsdelivr.net/gh/haikuotianko/dsh-toolboxes@main/docs/index.html)；源码在 [`docs/`](docs/)）
+
 一个可移植的 **MCP 工具箱**：把 ffmpeg / ripgrep / fd / jq / yt-dlp 这类命令行工具，按当前系统下载、安装、登记成 AI 可以直接调用的工具，并有一个能看**实时控制台**的管理页。
 
 MCP 优先的原因：同一份服务可以同时给 **DeepSeek Harness**、**opencode**、**Claude Code**、**Codex** 用，不用为每个宿主重写一遍工具层。

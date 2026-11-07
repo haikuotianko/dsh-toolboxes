@@ -98,9 +98,21 @@ function extractZip(zip, dir) {
 }
 
 async function fetchBytes(url) {
-  const response = await fetch(url, { redirect: 'follow' })
-  if (!response.ok) throw new Error(`下载失败 HTTP ${response.status}: ${url}`)
-  return Buffer.from(await response.arrayBuffer())
+  // github.com is often unreachable from mainland networks; try it directly and
+  // fall back to the public mirror. Both serve the same bytes, and the download
+  // is verified against SHA256SUMS either way.
+  const prefixes = ['', 'https://gh-proxy.com/']
+  let lastError
+  for (const prefix of prefixes) {
+    try {
+      const response = await fetch(prefix + url, { redirect: 'follow' })
+      if (!response.ok) throw new Error(`HTTP ${response.status} ${response.statusText}`)
+      return Buffer.from(await response.arrayBuffer())
+    } catch (error) {
+      lastError = error
+    }
+  }
+  throw new Error(`下载失败（直连与镜像均不可用）：${lastError?.message ?? lastError}`)
 }
 
 /** Download the release asset for this platform once, verified against SHA256SUMS. */
