@@ -1,0 +1,22 @@
+# dsh-toolboxes bundle patch.
+#
+# This file ships inside the npm package, so it must stay valid on ANY machine:
+# it may not name an absolute path from the author's computer.
+#
+# Why the MCP row is not here: `@deepseek-ai/dsh-mcp-client` needs the literal
+# path of the toolbox executable, and a bundle patch cannot compute one (the
+# `!!js` tag is only evaluated on row-level fields such as `disabled`, never
+# inside `config`). Register the agent tools with one of these instead:
+#
+#   1. the manager page's "接入 AI" section copies a ready-made config for the
+#      DSH MCP settings (it names the binary this plugin already downloaded), or
+#   2. run `toolbox -setup -patch <profile>/node_modules/dsh-toolboxes/cordis.patch.yml`
+#      from a build you trust, which rewrites this file with both rows filled in.
+#
+# The row NAME must stay exactly the package name: the host's client-module scan
+# resolves it to a package root and reads `dsh.client` from there. The row id is
+# a separate global id (`dsh-toolbox`) and is kept stable so an earlier install
+# is not orphaned by the package rename.
+- insert:
+    - id: dsh-toolbox
+      name: dsh-toolboxes

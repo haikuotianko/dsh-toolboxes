@@ -1,0 +1,732 @@
+{
+  "version": 1,
+  "note": "内置目录。按 GOOS/GOARCH 过滤后按顺序重试；os 留空表示不限。用户可在 <root>/catalog.json 按 id 覆盖或新增。",
+  "tools": [
+    {
+      "id": "ffmpeg",
+      "title": "FFmpeg",
+      "description": "视频/音频转码、剪辑、抽帧、压缩、加字幕。",
+      "usage": "toolbox_run { tool: \"ffmpeg\", args: [\"-i\",\"in.mp4\",\"-vf\",\"scale=1280:-1\",\"out.mp4\"] }",
+      "binaries": [
+        "ffmpeg",
+        "ffprobe"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://gh-proxy.com/https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "url": "https://evermeet.cx/ffmpeg/ffmpeg-7.1.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "media"
+    },
+    {
+      "id": "rg",
+      "title": "ripgrep",
+      "description": "极快的递归文本搜索，遵守 .gitignore。",
+      "usage": "toolbox_run { tool: \"rg\", args: [\"-n\",\"--glob\",\"*.ts\",\"useEffect\",\"src\"] }",
+      "binaries": [
+        "rg"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        },
+        {
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "fd",
+      "title": "fd",
+      "description": "按文件名快速查找，默认忽略 .gitignore。",
+      "usage": "toolbox_run { tool: \"fd\", args: [\"-e\",\"png\",\"assets\"] }",
+      "binaries": [
+        "fd"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        },
+        {
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "jq",
+      "title": "jq",
+      "description": "命令行 JSON 处理：取值、过滤、重组。",
+      "usage": "toolbox_run { tool: \"jq\", args: [\".dependencies | keys\", \"package.json\"] }",
+      "binaries": [
+        "jq"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-windows-amd64.exe",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-arm64",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-macos-amd64",
+          "single": true
+        }
+      ],
+      "category": "data"
+    },
+    {
+      "id": "yq",
+      "title": "yq",
+      "description": "YAML/JSON/XML 处理，jq 的 YAML 版。",
+      "usage": "toolbox_run { tool: \"yq\", args: [\".services.web.image\", \"docker-compose.yml\"] }",
+      "binaries": [
+        "yq"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_windows_amd64.exe",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_darwin_arm64",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_darwin_amd64",
+          "single": true
+        }
+      ],
+      "category": "data"
+    },
+    {
+      "id": "yt-dlp",
+      "title": "yt-dlp",
+      "description": "从视频站点下载音视频，支持格式选择与续传。",
+      "usage": "toolbox_run { tool: \"yt-dlp\", args: [\"-f\",\"best\",\"-o\",\"%(title)s.%(ext)s\",\"<url>\"] }",
+      "binaries": [
+        "yt-dlp"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "url": "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos",
+          "single": true
+        }
+      ],
+      "category": "media"
+    },
+    {
+      "id": "bat",
+      "title": "bat",
+      "description": "带语法高亮的 cat，自动分页。",
+      "usage": "toolbox_run { tool: \"bat\", args: [\"--paging=never\", \"main.go\"] }",
+      "binaries": [
+        "bat"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/sharkdp/bat/releases/download/v0.24.0/bat-v0.24.0-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "url": "https://github.com/sharkdp/bat/releases/download/v0.26.1/bat-v0.26.1-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz",
+          "arch": "arm64"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "delta",
+      "title": "delta",
+      "description": "更好看的 git diff / 并排对比。",
+      "usage": "toolbox_run { tool: \"delta\", args: [\"a.txt\", \"b.txt\"] }",
+      "binaries": [
+        "delta"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/dandavison/delta/releases/download/0.18.2/delta-0.18.2-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/dandavison/delta/releases/download/0.18.2/delta-0.18.2-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "fzf",
+      "title": "fzf",
+      "description": "模糊查找器，可接管道做交互筛选。",
+      "usage": "toolbox_run { tool: \"fzf\", args: [\"--filter\", \"main\", \"--select-1\"], cwd: \".\" }",
+      "binaries": [
+        "fzf"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/junegunn/fzf/releases/download/v0.56.3/fzf-0.56.3-windows_amd64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/junegunn/fzf/releases/download/v0.56.3/fzf-0.56.3-darwin_arm64.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "zoxide",
+      "title": "zoxide",
+      "description": "更聪明的 cd，按使用频率跳目录。",
+      "usage": "toolbox_run { tool: \"zoxide\", args: [\"query\", \"src\"] }",
+      "binaries": [
+        "zoxide"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/ajeetdsouza/zoxide/releases/download/v0.9.6/zoxide-0.9.6-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/ajeetdsouza/zoxide/releases/download/v0.9.6/zoxide-0.9.6-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "hyperfine",
+      "title": "hyperfine",
+      "description": "命令行基准测试，带统计与预热。",
+      "usage": "toolbox_run { tool: \"hyperfine\", args: [\"--warmup\", \"3\", \"go build ./...\"] }",
+      "binaries": [
+        "hyperfine"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/sharkdp/hyperfine/releases/download/v1.19.0/hyperfine-v1.19.0-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/sharkdp/hyperfine/releases/download/v1.19.0/hyperfine-v1.19.0-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "dust",
+      "title": "dust",
+      "description": "直观的磁盘占用树（du 的可视化替代）。",
+      "usage": "toolbox_run { tool: \"dust\", args: [\"-d\", \"2\", \".\"] }",
+      "binaries": [
+        "dust"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/bootandy/dust/releases/download/v1.1.1/dust-v1.1.1-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "url": "https://github.com/bootandy/dust/releases/download/v1.2.6/dust-v1.2.6-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz",
+          "arch": "arm64"
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "tokei",
+      "title": "tokei",
+      "description": "统计代码行数、注释与空行，按语言分组。",
+      "usage": "toolbox_run { tool: \"tokei\", args: [\".\"] }",
+      "binaries": [
+        "tokei"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/XAMPPRocky/tokei/releases/download/v12.1.2/tokei-x86_64-pc-windows-msvc.exe",
+          "single": true
+        }
+      ],
+      "category": "search"
+    },
+    {
+      "id": "gh",
+      "title": "GitHub CLI",
+      "description": "命令行管理 GitHub：PR、issue、release、workflow。",
+      "usage": "toolbox_run { tool: \"gh\", args: [\"pr\", \"list\", \"--state\", \"open\"] }",
+      "binaries": [
+        "gh"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_windows_amd64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_macOS_arm64.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "kubectl",
+      "title": "kubectl",
+      "description": "Kubernetes 集群命令行。",
+      "usage": "toolbox_run { tool: \"kubectl\", args: [\"get\", \"pods\", \"-A\"] }",
+      "binaries": [
+        "kubectl"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://dl.k8s.io/release/v1.31.0/bin/windows/amd64/kubectl.exe",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://dl.k8s.io/release/v1.31.0/bin/darwin/arm64/kubectl",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "amd64",
+          "url": "https://dl.k8s.io/release/v1.31.0/bin/darwin/amd64/kubectl",
+          "single": true
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "rclone",
+      "title": "rclone",
+      "description": "云存储同步/挂载，支持 70+ 后端。",
+      "usage": "toolbox_run { tool: \"rclone\", args: [\"copy\", \"localdir\", \"remote:bucket\"] }",
+      "binaries": [
+        "rclone"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/rclone/rclone/releases/download/v1.68.1/rclone-v1.68.1-windows-amd64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/rclone/rclone/releases/download/v1.68.1/rclone-v1.68.1-osx-arm64.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "ops"
+    },
+    {
+      "id": "restic",
+      "title": "restic",
+      "description": "快速加密备份工具，支持本地与对象存储。",
+      "usage": "toolbox_run { tool: \"restic\", args: [\"snapshots\"] }（需先设 RESTIC_REPOSITORY 与 RESTIC_PASSWORD，否则一定失败）",
+      "binaries": [
+        "restic"
+      ],
+      "single": false,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/restic/restic/releases/download/v0.17.3/restic_0.17.3_windows_amd64.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "ops"
+    },
+    {
+      "id": "gitleaks",
+      "title": "gitleaks",
+      "description": "扫描仓库里的密钥/令牌泄漏。",
+      "usage": "toolbox_run { tool: \"gitleaks\", args: [\"dir\", \".\", \"--no-banner\"] }",
+      "binaries": [
+        "gitleaks"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_windows_x64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_darwin_arm64.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "actionlint",
+      "title": "actionlint",
+      "description": "静态检查 GitHub Actions 工作流。",
+      "usage": "toolbox_run { tool: \"actionlint\", args: [\".github/workflows\"] }",
+      "binaries": [
+        "actionlint"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.4/actionlint_1.7.4_windows_amd64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/rhysd/actionlint/releases/download/v1.7.4/actionlint_1.7.4_darwin_arm64.tar.gz",
+          "archive": "tar.gz"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "duckdb",
+      "title": "DuckDB CLI",
+      "description": "进程内分析型 SQL 数据库，直接查 CSV/Parquet。",
+      "usage": "toolbox_run { tool: \"duckdb\", args: [\"-c\", \"select count(*) from 'data.parquet'\"] }",
+      "binaries": [
+        "duckdb"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/duckdb/duckdb/releases/download/v1.1.3/duckdb_cli-windows-amd64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/duckdb/duckdb/releases/download/v1.1.3/duckdb_cli-osx-universal.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "data"
+    },
+    {
+      "id": "pandoc",
+      "title": "pandoc",
+      "description": "文档格式转换：md/docx/html/pdf/epub 互转。",
+      "usage": "toolbox_run { tool: \"pandoc\", args: [\"in.md\", \"-o\", \"out.docx\"] }（转 PDF 需要 LaTeX，默认别用 pdf）",
+      "binaries": [
+        "pandoc"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/jgm/pandoc/releases/download/3.5/pandoc-3.5-windows-x86_64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/jgm/pandoc/releases/download/3.5/pandoc-3.5-arm64-macOS.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "docs"
+    },
+    {
+      "id": "protoc",
+      "title": "protoc",
+      "description": "Protocol Buffers 编译器。",
+      "usage": "toolbox_run { tool: \"protoc\", args: [\"--go_out=.\", \"api.proto\"] }（PATH 里需要 protoc-gen-go）",
+      "binaries": [
+        "protoc"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-win64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-osx-aarch_64.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "shellcheck",
+      "title": "shellcheck",
+      "description": "Shell 脚本静态检查。",
+      "usage": "toolbox_run { tool: \"shellcheck\", args: [\"deploy.sh\"] }",
+      "binaries": [
+        "shellcheck"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "dev"
+    },
+    {
+      "id": "aria2",
+      "title": "aria2",
+      "description": "多线程下载器，支持 HTTP/FTP/BT/磁力。",
+      "usage": "toolbox_run { tool: \"aria2\", args: [\"-x\", \"16\", \"-s\", \"16\", \"-d\", \".\", \"<url>\"] }",
+      "binaries": [
+        "aria2c"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/aria2/aria2/releases/download/release-1.37.0/aria2-1.37.0-win-64bit-build1.zip",
+          "archive": "zip"
+        }
+      ],
+      "category": "net"
+    },
+    {
+      "id": "curl",
+      "title": "curl",
+      "category": "net",
+      "description": "通用 HTTP 客户端（Windows 10+/macOS 系统自带，用「检查本机环境」登记即可）",
+      "usage": "toolbox_run { tool: \"curl\", args: [\"-sS\", \"-X\", \"POST\", \"-H\", \"content-type: application/json\", \"-d\", \"{}\", \"https://api.example.com\"] }",
+      "binaries": [
+        "curl"
+      ],
+      "sources": []
+    },
+    {
+      "id": "xh",
+      "title": "xh",
+      "category": "net",
+      "description": "HTTPie 风格的现代 HTTP 客户端，语法短、输出带颜色。",
+      "usage": "toolbox_run { tool: \"xh\", args: [\"POST\", \"https://api.example.com/users\", \"name=alice\"] }",
+      "binaries": [
+        "xh"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/ducaale/xh/releases/download/v0.23.0/xh-v0.23.0-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/ducaale/xh/releases/download/v0.23.0/xh-v0.23.0-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "grpcurl",
+      "title": "grpcurl",
+      "category": "net",
+      "description": "gRPC 命令行客户端，支持反射，不需要 .proto。",
+      "usage": "toolbox_run { tool: \"grpcurl\", args: [\"-plaintext\", \"localhost:50051\", \"list\"] }",
+      "binaries": [
+        "grpcurl"
+      ],
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/grpcurl_1.9.1_windows_x86_64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.1/grpcurl_1.9.1_osx_arm64.tar.gz",
+          "archive": "tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "websocat",
+      "title": "websocat",
+      "category": "net",
+      "description": "WebSocket 命令行客户端/服务端，也能做 TCP 转发。",
+      "usage": "toolbox_run { tool: \"websocat\", args: [\"wss://echo.websocket.events\"] }",
+      "binaries": [
+        "websocat"
+      ],
+      "single": true,
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/vi/websocat/releases/download/v1.13.0/websocat.x86_64-pc-windows-gnu.exe",
+          "single": true
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/vi/websocat/releases/download/v1.13.0/websocat.aarch64-apple-darwin",
+          "single": true
+        }
+      ]
+    },
+    {
+      "id": "oxipng",
+      "title": "oxipng",
+      "category": "media",
+      "binaries": [
+        "oxipng"
+      ],
+      "description": "PNG 无损优化，去元数据、重排压缩。",
+      "usage": "toolbox_run { tool: \"oxipng\", args: [\"-o\",\"3\",\"--strip\",\"safe\",\"a.png\"] }",
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://github.com/shssoichiro/oxipng/releases/download/v9.1.2/oxipng-9.1.2-x86_64-pc-windows-msvc.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://github.com/shssoichiro/oxipng/releases/download/v9.1.2/oxipng-9.1.2-aarch64-apple-darwin.tar.gz",
+          "archive": "tar.gz"
+        }
+      ]
+    },
+    {
+      "id": "cwebp",
+      "title": "WebP tools",
+      "category": "media",
+      "binaries": [
+        "cwebp",
+        "dwebp"
+      ],
+      "description": "把 PNG/JPEG 转成 WebP（cwebp）或转回来（dwebp）。",
+      "usage": "toolbox_run { tool: \"cwebp\", args: [\"-q\",\"82\",\"in.png\",\"-o\",\"out.webp\"] }",
+      "sources": [
+        {
+          "os": "windows",
+          "arch": "amd64",
+          "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0-windows-x64.zip",
+          "archive": "zip"
+        },
+        {
+          "os": "darwin",
+          "arch": "arm64",
+          "url": "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.4.0-mac-arm64.tar.gz",
+          "archive": "tar.gz"
+        }
+      ]
+    }
+  ]
+}

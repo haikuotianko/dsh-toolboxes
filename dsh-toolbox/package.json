@@ -1,0 +1,52 @@
+{
+  "name": "dsh-toolboxes",
+  "version": "0.2.0",
+  "description": "Toolbox MCP server manager page: installs per-OS CLI tools (ffmpeg / ripgrep / fd / jq / yt-dlp) with multi-source failover, watches the agent's running commands live, and archives reusable scripts.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/haikuotianko/toolbox",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haikuotianko/toolbox.git"
+  },
+  "bugs": {
+    "url": "https://github.com/haikuotianko/toolbox/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "mcp",
+    "model-context-protocol",
+    "toolbox",
+    "ffmpeg",
+    "ripgrep",
+    "fd",
+    "jq",
+    "yt-dlp"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "engines": { "dsh": ">=0.2.1-rc.2" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-renderer", "@deepseek-ai/dsh-client-ui-layout"]
+    }
+  }
+}

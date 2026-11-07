@@ -1,0 +1,21 @@
+# 构建产物与本地数据
+build/
+dist/
+*.exe
+*.test
+*.out
+coverage.*
+
+# 运行时数据（工具箱 root 可能在仓库内）
+runs/
+.runtest/
+
+# 依赖与编辑器
+node_modules/
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# �����ݴ�Ĳ��������
+dsh-toolbox/bin/

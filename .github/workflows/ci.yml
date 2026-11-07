@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./...
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 语法检查
+        run: |
+          node --check dsh-toolbox/index.js
+          node --check dsh-toolbox/client.js
+      - name: 页面冒烟渲染
+        run: node _scripts/ui-smoke.mjs
+      - name: 打包内容检查（不带二进制）
+        run: |
+          cd dsh-toolbox
+          npm pack --dry-run

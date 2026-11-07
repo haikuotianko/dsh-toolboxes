@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "工具箱",
+    "description": "把常用命令行工具（ffmpeg/rg/fd/jq/yt-dlp）装成模型可直接调用的工具，并按需归档 AI 写的通用脚本。"
+  }
+}

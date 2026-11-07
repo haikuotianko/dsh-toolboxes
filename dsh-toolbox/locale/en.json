@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Toolbox",
+    "description": "Install common CLIs (ffmpeg/rg/fd/jq/yt-dlp) as tools the agent calls directly, and archive reusable AI-written scripts."
+  }
+}
