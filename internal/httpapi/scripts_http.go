@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/haikuotianko/toolbox/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
 )
 
 func (s *Server) registerScriptRoutes(mux *http.ServeMux) {

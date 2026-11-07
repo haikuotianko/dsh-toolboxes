@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
-	"github.com/haikuotianko/toolbox/internal/store"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/store"
 )
 
 // ToolDetail is everything the page shows for one installed tool.

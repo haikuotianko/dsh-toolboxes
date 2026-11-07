@@ -26,7 +26,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url))
 // Versioned so a stale registration from an earlier module generation cannot
 // collide with this one; the page uses the same constant.
 const API_PREFIX = '/dsh-toolbox/api/v1'
-const REPO = 'haikuotianko/toolbox'
+const REPO = 'haikuotianko/dsh-toolboxes'
 
 export const inject = ['webServer']
 

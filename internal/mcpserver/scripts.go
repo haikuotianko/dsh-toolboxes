@@ -3,8 +3,8 @@ package mcpserver
 import (
 	"os"
 
-	"github.com/haikuotianko/toolbox/internal/install"
-	"github.com/haikuotianko/toolbox/internal/store"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/store"
 )
 
 // ScriptView is one archived script with its source, for the manager page.

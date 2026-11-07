@@ -4,13 +4,13 @@
   "description": "Toolbox MCP server manager page: installs per-OS CLI tools (ffmpeg / ripgrep / fd / jq / yt-dlp) with multi-source failover, watches the agent's running commands live, and archives reusable scripts.",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/haikuotianko/toolbox",
+  "homepage": "https://github.com/haikuotianko/dsh-toolboxes",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haikuotianko/toolbox.git"
+    "url": "git+https://github.com/haikuotianko/dsh-toolboxes.git"
   },
   "bugs": {
-    "url": "https://github.com/haikuotianko/toolbox/issues"
+    "url": "https://github.com/haikuotianko/dsh-toolboxes/issues"
   },
   "keywords": [
     "dsh",

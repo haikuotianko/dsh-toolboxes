@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
 )
 
 // SourceSpeed is one measured download origin.

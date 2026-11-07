@@ -23,8 +23,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/haikuotianko/toolbox/internal/httpapi"
-	"github.com/haikuotianko/toolbox/internal/mcpserver"
+	"github.com/haikuotianko/dsh-toolboxes/internal/httpapi"
+	"github.com/haikuotianko/dsh-toolboxes/internal/mcpserver"
 )
 
 // version is stamped at build time so the binary and the release tag never drift:

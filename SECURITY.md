@@ -2,7 +2,7 @@
 
 ## 报告漏洞
 
-请不要开公开 issue。用 GitHub 的 [Private vulnerability reporting](https://github.com/haikuotianko/toolbox/security/advisories/new) 提交，或发邮件到 `1135470449@qq.com`。
+请不要开公开 issue。用 GitHub 的 [Private vulnerability reporting](https://github.com/haikuotianko/dsh-toolboxes/security/advisories/new) 提交，或发邮件到 `1135470449@qq.com`。
 
 请写清楚：受影响版本、复现步骤、影响范围（例如「某个下载源可被替换成任意二进制」）。
 

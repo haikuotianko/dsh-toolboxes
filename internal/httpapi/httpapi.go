@@ -15,9 +15,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
-	"github.com/haikuotianko/toolbox/internal/install"
-	"github.com/haikuotianko/toolbox/internal/mcpserver"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/mcpserver"
 )
 
 // Server wires the MCP handler and the JSON API to one service.

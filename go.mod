@@ -1,4 +1,4 @@
-module github.com/haikuotianko/toolbox
+module github.com/haikuotianko/dsh-toolboxes
 
 go 1.25.0
 

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
-	"github.com/haikuotianko/toolbox/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
 )
 
 // JobView is one in-flight or finished install, shaped for polling clients.

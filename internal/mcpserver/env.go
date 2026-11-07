@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
-	"github.com/haikuotianko/toolbox/internal/store"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/store"
 )
 
 // EnvHit is one catalog tool that already exists on this machine.

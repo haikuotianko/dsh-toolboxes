@@ -1,7 +1,7 @@
 # toolbox
 
-[![ci](https://github.com/haikuotianko/toolbox/actions/workflows/ci.yml/badge.svg)](https://github.com/haikuotianko/toolbox/actions/workflows/ci.yml)
-[![release](https://img.shields.io/github/v/release/haikuotianko/toolbox)](https://github.com/haikuotianko/toolbox/releases)
+[![ci](https://github.com/haikuotianko/dsh-toolboxes/actions/workflows/ci.yml/badge.svg)](https://github.com/haikuotianko/dsh-toolboxes/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/haikuotianko/dsh-toolboxes)](https://github.com/haikuotianko/dsh-toolboxes/releases)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 一个可移植的 **MCP 工具箱**：把 ffmpeg / ripgrep / fd / jq / yt-dlp 这类命令行工具，按当前系统下载、安装、登记成 AI 可以直接调用的工具，并有一个能看**实时控制台**的管理页。
@@ -18,12 +18,14 @@ AI ──MCP──▶ toolbox ──▶ 下载/安装/运行 CLI 工具
 
 **方式一：下载二进制**（Windows / macOS / Linux，无需 Go）
 
-从 [Releases](https://github.com/haikuotianko/toolbox/releases) 下载对应压缩包，解压后把 `toolbox`（Windows 是 `toolbox.exe`）放到 PATH 里。
+从 [Releases](https://github.com/haikuotianko/dsh-toolboxes/releases) 下载对应压缩包，解压后把 `toolbox`（Windows 是 `toolbox.exe`）放到 PATH 里。
 
 **方式二：从源码装**（需要 Go ≥ 1.25）
 
 ```bash
-go install github.com/haikuotianko/toolbox@latest
+go install github.com/haikuotianko/dsh-toolboxes@latest
+# 模块名决定产物名字，装出来叫 dsh-toolboxes；想用下面文档里的 `toolbox`，重命名一下即可
+mv "$(go env GOPATH)/bin/dsh-toolboxes" "$(go env GOPATH)/bin/toolbox"   # Windows 换成 $(go env GOPATH)\bin\*.exe
 ```
 
 **方式三：DSH 插件**（带管理页，自动准备二进制）

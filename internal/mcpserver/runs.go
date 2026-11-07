@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/haikuotianko/toolbox/internal/install"
-	"github.com/haikuotianko/toolbox/internal/runlog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/runlog"
 )
 
 // Where a run came from, so the page can tell an agent call from its own click.

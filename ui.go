@@ -11,8 +11,8 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/haikuotianko/toolbox/internal/httpapi"
-	"github.com/haikuotianko/toolbox/internal/mcpserver"
+	"github.com/haikuotianko/dsh-toolboxes/internal/httpapi"
+	"github.com/haikuotianko/dsh-toolboxes/internal/mcpserver"
 )
 
 //go:embed web/index.html

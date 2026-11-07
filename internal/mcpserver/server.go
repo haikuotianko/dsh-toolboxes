@@ -10,9 +10,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/haikuotianko/toolbox/internal/catalog"
-	"github.com/haikuotianko/toolbox/internal/install"
-	"github.com/haikuotianko/toolbox/internal/store"
+	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/install"
+	"github.com/haikuotianko/dsh-toolboxes/internal/store"
 )
 
 // Service owns the toolbox root.
