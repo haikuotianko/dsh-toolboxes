@@ -1,10 +1,10 @@
 /**
- * dsh-toolbox: manager page.
+ * dsh-toolboxes: manager page.
  * Tools (install/progress/cancel/sources/enable/uninstall) + scripts (run with args),
  * plus the live console of every command the toolbox is running right now.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-toolbox',
+  id: 'dsh-toolboxes',
   factory(require) {
     const React = require('react');
     const h = React.createElement;

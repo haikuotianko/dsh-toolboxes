@@ -21,7 +21,9 @@ func writeDSHPatch(patchPath, binary, root string) error {
 		"# `config`, so every path here is a plain literal.",
 		"- insert:",
 		"    - id: dsh-toolbox",
-		"      name: dsh-toolbox",
+		// The row name must be the package name: the host resolves it to a
+		// package root to mount the browser half.
+		"      name: dsh-toolboxes",
 		"    - id: dsh-toolbox-mcp",
 		`      name: "@deepseek-ai/dsh-mcp-client"`,
 		"      config:",

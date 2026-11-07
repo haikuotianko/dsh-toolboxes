@@ -237,9 +237,13 @@ type saveScriptInput struct {
 	Command     string `json:"command,omitempty" jsonschema:"optional absolute interpreter path"`
 }
 
+// Version is stamped by main so the MCP handshake reports the release version
+// instead of a stale literal.
+var Version = "dev"
+
 // NewServer builds one MCP server instance with every toolbox tool.
 func (s *Service) NewServer() *mcp.Server {
-	server := mcp.NewServer(&mcp.Implementation{Name: "dsh-toolbox", Version: "0.1.0"}, &mcp.ServerOptions{
+	server := mcp.NewServer(&mcp.Implementation{Name: "toolbox", Version: Version}, &mcp.ServerOptions{
 		Instructions: "工具箱：先 toolbox_list 看已装工具与可装清单；ffmpeg/rg/fd/jq/yt-dlp 这类通用活优先调用已装工具，不要临时写脚本；确实需要新脚本且它不只服务当前项目时，用 toolbox_save_script 归档。",
 	})
 

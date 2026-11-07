@@ -70,6 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("toolbox: %v", err)
 	}
+	mcpserver.Version = version
 	service := mcpserver.New(root, func(format string, args ...any) {
 		log.Printf(format, args...)
 	})

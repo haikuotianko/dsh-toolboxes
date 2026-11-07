@@ -1,5 +1,5 @@
 /**
- * dsh-toolbox — Host half: the manager page's backend only.
+ * dsh-toolboxes — Host half: the manager page's backend only.
  *
  * The agent-facing tools come from a separate MCP client row (see
  * cordis.patch.yml), so the same Go server also works in opencode / Claude Code
