@@ -17,7 +17,7 @@
   }
   * { box-sizing:border-box; }
   body { margin:0; font:13px/1.55 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif; background:var(--bg); color:var(--text); }
-  header { display:flex; gap:12px; align-items:center; padding-block:14px; padding-inline:max(22px, calc((100% - 1040px) / 2)); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  header { display:flex; gap:12px; align-items:center; padding:18px 22px 0; }
   h1 { font-size:17px; font-weight:700; margin:0; letter-spacing:-.2px; }
   .muted { color:var(--sub); font-size:12px; }
   .err { color:var(--err); font-size:11.5px; }
@@ -30,9 +30,17 @@
   /* 分区头：和插件页 Section 一样的圆角条，收起时是面板底色 */
   .sec { margin-top:16px; }
   .sec > h2 { display:flex; align-items:baseline; gap:8px; margin:0; padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:var(--panel); font-size:14px; font-weight:600; cursor:pointer; user-select:none; }
+  /* 展开后标题条和插件页一样退成透明，避免“一坨一坨的色块” */
+  .sec.open > h2 { background:transparent; border-color:transparent; }
   .sec > h2 .caret { color:var(--sub); width:10px; display:inline-block; }
   .sec > h2 .summ { color:var(--sub); font-size:11.5px; font-weight:400; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .sec > .body { margin-top:8px; }
+
+  .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .chip { display:inline-flex; align-items:baseline; gap:4px; font-size:11.5px; padding:2px 9px; border-radius:999px; border:1px solid var(--line); }
+  .chip code { font-weight:600; }
+  .chip.warn, .chip.warn .warn { border-color:var(--err); color:var(--err); }
+  .chip.warn .muted { color:var(--err); }
 
   /* 卡片：圆角 10、内边距 10/12，和插件页 Box 一致 */
   .card { border:1px solid var(--line); border-radius:var(--radius); margin-bottom:8px; background:var(--bg); }
@@ -56,7 +64,7 @@
   <h1>工具箱</h1>
   <span class="muted" id="meta">…</span>
   <span style="margin-left:auto"></span>
-  <button id="btn-env">检查本机环境</button>
+  <span id="running" class="muted" style="display:none;color:var(--brand)"></span>
   <button id="btn-refresh">刷新</button>
 </header>
 <main>
@@ -64,22 +72,22 @@
   <div id="job"></div>
 
   <div class="sec" id="sec-runs">
-    <h2 data-toggle><span class="caret">▸</span> <span id="h-runs">命令运行</span> <span class="summ" id="runs-summ"></span></h2>
+    <h2 data-toggle><span class="caret">></span> <span id="h-runs">命令运行</span> <span class="summ" id="runs-summ"></span></h2>
     <div class="body" id="runs" hidden></div>
   </div>
 
   <div class="sec" id="sec-env">
-    <h2 data-toggle><span class="caret">▸</span> 本机环境 <span class="summ" id="env-summ">PATH 里已有哪些预设工具</span></h2>
+    <h2 data-toggle><span class="caret">></span> 本机环境 <span class="summ" id="env-summ">PATH 里已有哪些预设工具</span><button id="btn-env" onclick="event.stopPropagation()">检查</button></h2>
     <div class="body" id="env-body" hidden></div>
   </div>
 
   <div class="sec" id="sec-installed">
-    <h2 data-toggle><span class="caret">▸</span> <span id="h-installed">已安装</span> <span class="summ" id="installed-summ"></span></h2>
+    <h2 data-toggle><span class="caret">></span> <span id="h-installed">已安装</span> <span class="summ" id="installed-summ"></span></h2>
     <div class="body" id="installed" hidden></div>
   </div>
 
   <div class="sec" id="sec-available">
-    <h2 data-toggle><span class="caret">▸</span> <span id="h-available">可安装</span> <span class="summ" id="available-summ"></span></h2>
+    <h2 data-toggle><span class="caret">></span> <span id="h-available">可安装</span> <span class="summ" id="available-summ"></span></h2>
     <div class="body" id="available" hidden><div id="cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div><div id="avail-list"></div></div>
   </div>
 
@@ -93,7 +101,7 @@
   </div>
 
   <div class="sec" id="sec-connect">
-    <h2 data-toggle><span class="caret">▸</span> 接入 AI（MCP） <span class="summ" id="connect-summ">让 agent 能调用这些工具</span></h2>
+    <h2 data-toggle><span class="caret">></span> 接入 AI（MCP） <span class="summ" id="connect-summ">让 agent 能调用这些工具</span></h2>
     <div class="body" id="connect" hidden>
       <div class="card">
         <div class="head" style="cursor:default"><button id="btn-copy-mcp">复制配置</button><span class="muted" id="copy-mcp-state"></span></div>
@@ -106,34 +114,34 @@
   </div>
 
   <div class="sec" id="sec-scripts">
-    <h2 data-toggle><span class="caret">▸</span> <span id="h-scripts">脚本</span> <span class="summ" id="scripts-summ"></span></h2>
+    <h2 data-toggle><span class="caret">></span> <span id="h-scripts">本地脚本</span> <span class="summ" id="scripts-summ"></span></h2>
     <div class="body" id="scripts" hidden>
-      <div class="card"><div class="head"><button id="btn-new-script">+ 新建脚本</button><span class="muted">运行时按 usage 预填参数</span></div></div>
-    </div>
-  </div>
-
-  <div class="sec" id="sec-runtimes">
-    <h2 data-toggle><span class="caret">▸</span> <span id="h-runtimes">语言版本</span> <span class="summ" id="runtimes-summ"></span></h2>
-    <div class="body" id="runtimes" hidden>
-      <div class="card"><div class="head" style="cursor:default">
+      <div class="row" id="lang-strip">
+        <span id="lang-chips" class="chips"></span>
+        <span style="margin-left:auto"></span>
         <button id="btn-runtimes-refresh">重新检测</button>
         <button id="btn-runtimes-exec" title="每个语言跑一次 --version，拿准确版本">精确版本</button>
-        <span class="muted" id="runtimes-meta">结果缓存在 runtimes.json，12 小时内复用；装了新语言点「重新检测」</span>
-      </div></div>
-      <div id="runtime-list"></div>
-      <div class="card"><div class="head" style="cursor:default;flex-wrap:wrap">
-        <input id="rt-id" placeholder="id，如 rust" style="width:100px">
-        <input id="rt-name" placeholder="名称（可空）" style="width:110px">
-        <input id="rt-cmd" placeholder="命令名或路径，如 rust" class="desc" style="background:var(--panel)">
-        <input id="rt-ext" placeholder="扩展名，如 ts" style="width:96px" title="填了就能用它归档脚本：执行方式是「命令 + 脚本路径」">
-        <input id="rt-version" placeholder="版本（可空）" style="width:110px" title="环境变量里读不到版本时手填">
-        <button id="btn-rt-add">添加语言</button>
-      </div></div>
+        <button id="btn-lang-toggle">语言…</button>
+        <button id="btn-new-script">+ 新建</button>
+      </div>
+      <div id="lang-panel" hidden>
+        <div class="row"><span class="muted" id="runtimes-meta"></span></div>
+        <div id="runtime-list"></div>
+        <div class="card"><div class="head" style="cursor:default;flex-wrap:wrap">
+          <input id="rt-id" placeholder="id，如 rust" style="width:100px">
+          <input id="rt-name" placeholder="名称（可空）" style="width:110px">
+          <input id="rt-cmd" placeholder="命令名或路径，如 rust" class="desc" style="background:var(--panel)">
+          <input id="rt-ext" placeholder="扩展名，如 ts" style="width:96px" title="填了就能用它归档脚本：执行方式是「命令 + 脚本路径」">
+          <input id="rt-version" placeholder="版本（可空）" style="width:110px" title="环境变量里读不到版本时手填">
+          <button id="btn-rt-add">添加语言</button>
+        </div></div>
+      </div>
+      <div id="script-list"></div>
     </div>
   </div>
 
   <div class="sec">
-    <h2 data-toggle><span class="caret">▸</span> AI 不主动用工具箱？ <span class="summ">复制一段话发给 AI，让它自己写进 AGENTS.md</span></h2>
+    <h2 data-toggle><span class="caret">></span> AI 不主动用工具箱？ <span class="summ">复制一段话发给 AI，让它自己写进 AGENTS.md</span></h2>
     <div class="body" hidden>
       <div class="card"><div class="detail" style="display:block">
         <p class="muted" style="margin:6px 0">复制下面这段，直接发给你的 AI；它会自己写进 AGENTS.md：</p>
@@ -149,7 +157,7 @@ const $ = (id) => document.getElementById(id);
 const kb = (n) => Math.round((n || 0) / 1024) + ' KB';
 const rate = (n) => (n > 0 ? Math.round(n / 1024) + ' KB/s' : '-');
 let job = null;
-const open = { runs: true, env: false, installed: true, available: false, connect: false, scripts: false, runtimes: false };
+const open = { runs: true, env: false, installed: true, available: false, connect: false, scripts: false };
 
 async function api(path, init) {
   const res = await fetch(API + path, init);
@@ -179,8 +187,9 @@ function applyOpen() {
     const key = sec.id.replace('sec-', '');
     const isOpen = key && Object.prototype.hasOwnProperty.call(open, key) ? open[key] : !body.hidden;
     body.hidden = !isOpen;
+    sec.classList.toggle('open', isOpen);
     const caret = sec.querySelector('.caret');
-    if (caret) caret.textContent = isOpen ? '▾' : '▸';
+    if (caret) caret.textContent = isOpen ? 'v' : '>';
   });
 }
 // Every collapsible header toggles its own body; keyed sections also sync state
@@ -190,20 +199,21 @@ document.querySelectorAll('h2[data-toggle]').forEach((h) => h.addEventListener('
   const body = sec.querySelector('.body');
   const caret = h.querySelector('.caret');
   body.hidden = !body.hidden;
-  if (caret) caret.textContent = body.hidden ? '▸' : '▾';
+  sec.classList.toggle('open', !body.hidden);
+  if (caret) caret.textContent = body.hidden ? '>' : 'v';
   const key = sec.id.replace('sec-', '');
   if (key && Object.prototype.hasOwnProperty.call(open, key)) open[key] = !body.hidden;
 }));
 
 function card(id, title, desc, extra) {
   const box = el('div', { class: 'card' });
-  const head = el('div', { class: 'head' }, el('span', { class: 'caret' }, '▸'), el('span', { class: 'title' }, title), el('span', { class: 'desc' }, desc || ''));
+  const head = el('div', { class: 'head' }, el('span', { class: 'caret' }, '>'), el('span', { class: 'title' }, title), el('span', { class: 'desc' }, desc || ''));
   for (const node of (extra || [])) head.append(node);
   const detail = el('div', { class: 'detail' });
   head.addEventListener('click', (event) => {
     if (event.target.closest('button, input')) return;
     box.classList.toggle('open');
-    head.querySelector('.caret').textContent = box.classList.contains('open') ? '▾' : '▸';
+    head.querySelector('.caret').textContent = box.classList.contains('open') ? 'v' : '>';
   });
   box.append(head, detail);
   return { box, detail };
@@ -318,8 +328,8 @@ async function loadScripts() {
     const list = data.scripts || [];
     $('h-scripts').textContent = '脚本 · ' + list.length;
     $('scripts-summ').textContent = list.map((s) => s.id).join(', ') || '(空)';
-    const host = $('scripts');
-    [...host.querySelectorAll('.card.script')].forEach((n) => n.remove());
+    const host = $('script-list');
+
     for (const s of list) {
       const { box, detail } = card(s.id, s.id, s.description || '', [
         el('span', { class: 'muted', style: 'font-size:11.5px' }, s.language),
@@ -450,6 +460,9 @@ async function loadRuns() {
     const list = data.runs || [];
     const live = list.filter((r) => r.phase === 'running');
     $('h-runs').textContent = '命令运行' + (live.length ? ' · ' + live.length + ' 运行中' : '');
+    const runningEl = $('running');
+    runningEl.style.display = live.length ? '' : 'none';
+    runningEl.textContent = live.length ? '● ' + live.length + ' 条命令运行中' : '';
     $('runs-summ').textContent = live.length ? live.map((r) => r.tool).join(', ')
       : (list.length ? '最近 ' + Math.min(list.length, 4) + ' 条（含已结束）' : '没有正在运行的命令');
     const shown = live.concat(list.filter((r) => r.phase !== 'running').slice(0, 4));
@@ -480,9 +493,14 @@ async function loadRuntimes(refresh, exec) {
 
 function renderRuntimes(data) {
   const list = data.runtimes || [];
-  const chips = list.filter((x) => x.ext).map((x) => x.id + ' ' + (x.version || '?'));
-  $('h-runtimes').textContent = '语言版本 · ' + list.length;
-  $('runtimes-summ').textContent = chips.join(' · ') || '还没有语言记录';
+  const chipHost = $('lang-chips'); chipHost.innerHTML = '';
+  const scriptable = list.filter((x) => x.ext);
+  if (!scriptable.length) chipHost.append(el('span', { class: 'muted' }, '还没有语言记录'));
+  for (const x of scriptable) {
+    const old = x.id === 'powershell' && parseInt(x.version || '0', 10) < 7;
+    chipHost.append(el('span', { class: 'chip' + (old ? ' warn' : ''), title: (x.path || x.command) + (x.notes ? '\n' + x.notes : '') },
+      el('code', {}, x.id), el('span', { class: old ? 'warn' : 'muted' }, ' ' + (x.version || '?'))));
+  }
   $('runtimes-meta').textContent = '检测于 ' + (data.checkedAt ? new Date(data.checkedAt).toLocaleString() : '—') +
     ' · ' + (data.mode === 'exec' ? '精确模式（跑过 --version）' : '环境变量模式（只读 PATH / *_HOME，不启动进程）') +
     ' · 结果缓存在 runtimes.json，12 小时复用';
@@ -498,6 +516,11 @@ function renderRuntimes(data) {
   }
 }
 
+$('btn-lang-toggle').onclick = () => {
+  const panel = $('lang-panel');
+  panel.hidden = !panel.hidden;
+  $('btn-lang-toggle').textContent = panel.hidden ? '语言…' : '收起语言';
+};
 $('btn-runtimes-refresh').onclick = () => loadRuntimes(true, false);
 $('btn-runtimes-exec').onclick = () => loadRuntimes(true, true);
 $('btn-rt-add').onclick = async () => {

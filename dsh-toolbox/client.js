@@ -81,11 +81,12 @@ window.__ModuleLoader__.load({
     }
     const Box = (props) => h('div', { style: Object.assign({ border: '1px solid ' + C.border, borderRadius: 10, padding: '10px 12px', marginBottom: 8, background: C.bg }, props.style) }, props.children);
     function Section(props) {
-      return h('div', { style: { marginTop: props.top || 20 } },
+      return h('div', { style: { marginTop: props.top === undefined ? 20 : props.top } },
         h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, cursor: 'pointer', padding: '6px 9px', borderRadius: 7, border: '1px solid ' + (props.open ? 'transparent' : C.border), background: props.open ? 'transparent' : C.panel }, onClick: props.onToggle },
           h('span', { style: { color: C.subtle, width: 10 } }, props.open ? 'v' : '>'),
           h('h2', { style: { margin: 0, fontSize: 14, fontWeight: 600 } }, props.title),
-          h('span', { style: { fontSize: 11.5, color: C.subtle, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, props.summary)),
+          h('span', { style: { fontSize: 11.5, color: C.subtle, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, props.summary),
+          props.action ? h('div', { style: { marginLeft: 8 }, onClick: (e) => e.stopPropagation() }, props.action) : null),
         props.open ? h('div', { style: { marginTop: 8 } }, props.children) : null);
     }
     const Meta = (props) => (props.value ? h('div', { style: { display: 'flex', gap: 8, fontSize: 12, marginTop: 3 } }, h('span', { style: { color: C.subtle, minWidth: 64 } }, props.label), h('span', { style: { wordBreak: 'break-all' } }, props.value)) : null);
@@ -265,14 +266,15 @@ window.__ModuleLoader__.load({
           h('input', { title: '环境变量里读不到版本时，可以手填', placeholder: '版本（可空）', value: langVersion, onChange: (e) => setLangVersion(e.target.value), style: Object.assign(input(), { width: 110 }) }),
           h(Btn, { disabled: !langID.trim() || !langCmd.trim(), onClick: addLang }, '添加语言'))) : null;
 
-      return h('div', { style: { marginTop: 24 } },
-        h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10 } },
-          h('span', { style: { color: C.subtle, width: 10, cursor: 'pointer' }, onClick: () => setOpen(!open) }, open ? 'v' : '>'),
-          h('h2', { style: { fontSize: 14, fontWeight: 600, margin: 0, cursor: 'pointer' }, onClick: () => setOpen(!open) }, '脚本 · ' + (list ? list.length : '...')),
-          h('span', { style: { fontSize: 11.5, color: C.subtle, flex: 0, maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, (list || []).map((x) => x.id).join(', ')),
-          h('span', { style: { fontSize: 12, color: C.subtle } }, 'AI 归档的脚本；运行前填参数'),
-          h('div', { style: { marginLeft: 'auto' } }, h(Btn, { onClick: () => setDraft(Object.assign({}, blank)) }, '+ 新建'))),
-        h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 6, paddingLeft: 20 } },
+      return h(Section, {
+        top: 24,
+        title: '本地脚本 · ' + (list ? list.length : '...'),
+        summary: (list || []).map((x) => x.id).join(', ') || 'AI 归档的脚本；运行前填参数',
+        open: open,
+        onToggle: () => setOpen(!open),
+        action: h(Btn, { onClick: () => setDraft(Object.assign({}, blank)) }, '+ 新建'),
+      },
+        h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' } },
           scriptable.length ? scriptable.map(chip)
             : h('span', { style: { fontSize: 11.5, color: C.subtle } }, envBusy ? '正在检测本机语言…' : '还没有语言记录，点「重新检测」'),
           h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6 } },
@@ -369,6 +371,7 @@ window.__ModuleLoader__.load({
       const [openInstalled, setOpenInstalled] = React.useState(true);
       const [openAvailable, setOpenAvailable] = React.useState(false);
       const [openEnv, setOpenEnv] = React.useState(false);
+      const [openCustom, setOpenCustom] = React.useState(false);
       const [runs, setRuns] = React.useState([]);
       const [openRuns, setOpenRuns] = React.useState(true);
 
@@ -489,24 +492,29 @@ window.__ModuleLoader__.load({
           h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 10, alignItems: 'center' } },
             liveRuns.length ? h('span', { style: { fontSize: 12, color: C.brand } }, '● ' + liveRuns.length + ' 条命令运行中') : null,
             h(Btn, { onClick: refresh, disabled: running }, '刷新'))),
-        runs.length ? h('div', { style: { marginTop: 12 } },
-          h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 8, cursor: 'pointer', padding: '6px 9px', borderRadius: 7, border: '1px solid ' + C.border, background: C.panel }, onClick: () => setOpenRuns(!openRuns) },
-            h('span', { style: { color: C.subtle, width: 10 } }, openRuns ? 'v' : '>'),
-            h('h2', { style: { margin: 0, fontSize: 14, fontWeight: 600 } }, '命令运行 · ' + (liveRuns.length ? liveRuns.length + ' 运行中' : runs.length + ' 条记录')),
-            h('span', { style: { fontSize: 11.5, color: C.subtle, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, liveRuns.length ? liveRuns.map((r) => r.tool).join(', ') : '最近跑过的命令与输出'),
-            h('div', { style: { marginLeft: 'auto' } }, h(Btn, { onClick: (e) => { e.stopPropagation(); clearRuns(); } }, '清除已结束'))),
-          openRuns ? h('div', { style: { marginTop: 8 } }, shownRuns.map((r) => h(RunCard, { key: r.id, run: r, onCancel: cancelRun }))) : null) : null,
-        h('div', { style: { display: 'flex', gap: 10, alignItems: 'center', marginTop: 12, padding: '8px 12px', borderRadius: 8, border: '1px solid ' + C.border, background: C.panel } },
-          h('span', { style: { color: C.subtle, width: 10, cursor: 'pointer' }, onClick: () => setOpenEnv(!openEnv) }, openEnv ? 'v' : '>'),
-          h('span', { style: { fontSize: 12, fontWeight: 600, cursor: 'pointer' }, onClick: () => setOpenEnv(!openEnv) }, '本机环境'),
-          h('span', { style: { fontSize: 12, color: C.subtle, flex: 1, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }, onClick: () => setOpenEnv(!openEnv) }, Array.isArray(env) ? '发现 ' + env.length + ' 个：' + env.map((x) => x.id).join(', ') : '检查 PATH 里已有哪些预设工具'),
-          h(Btn, { onClick: () => request('/env').then((r) => { setEnv(r.hits); setOpenEnv(true); }, (e) => setErr(String(e.message || e))) }, '检查')),
-        Array.isArray(env) && openEnv ? env.map((x) => h('div', { key: x.id + x.path, style: { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 11.5, padding: '6px 0', borderBottom: '1px solid ' + C.border } },
-          h('div', { style: { flex: 1, minWidth: 0 } },
-            h('div', { style: { display: 'flex', gap: 8 } }, h('code', { style: { fontWeight: 600 } }, x.id), x.managed ? h('span', { style: { color: C.subtle } }, '已登记') : null),
-            x.description ? h('div', { style: { color: C.subtle, marginTop: 2 } }, x.description) : null,
-            h('div', { style: { color: C.subtle, marginTop: 2 } }, x.path)),
-          x.managed ? null : h(Btn, { onClick: () => post('/adopt', { tool: x.id, path: x.path }).then(() => { setDetail({}); refresh(); }, (e) => setErr(String(e.message || e))) }, '使用系统版本'))) : null,
+        runs.length ? h(Section, {
+          top: 12,
+          title: '命令运行 · ' + (liveRuns.length ? liveRuns.length + ' 运行中' : runs.length + ' 条记录'),
+          summary: liveRuns.length ? liveRuns.map((r) => r.tool).join(', ') : '最近跑过的命令与输出',
+          open: openRuns,
+          onToggle: () => setOpenRuns(!openRuns),
+          action: h(Btn, { onClick: clearRuns }, '清除已结束'),
+        }, shownRuns.map((r) => h(RunCard, { key: r.id, run: r, onCancel: cancelRun }))) : null,
+        h(Section, {
+          top: 12,
+          title: '本机环境',
+          summary: Array.isArray(env) ? '发现 ' + env.length + ' 个：' + env.map((x) => x.id).join(', ') : '检查 PATH 里已有哪些预设工具',
+          open: openEnv,
+          onToggle: () => setOpenEnv(!openEnv),
+          action: h(Btn, { onClick: () => request('/env').then((r) => { setEnv(r.hits); setOpenEnv(true); }, (e) => setErr(String(e.message || e))) }, '检查'),
+        }, Array.isArray(env)
+          ? env.map((x) => h('div', { key: x.id + x.path, style: { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 11.5, padding: '6px 0', borderBottom: '1px solid ' + C.border } },
+            h('div', { style: { flex: 1, minWidth: 0 } },
+              h('div', { style: { display: 'flex', gap: 8 } }, h('code', { style: { fontWeight: 600 } }, x.id), x.managed ? h('span', { style: { color: C.subtle } }, '已登记') : null),
+              x.description ? h('div', { style: { color: C.subtle, marginTop: 2 } }, x.description) : null,
+              h('div', { style: { color: C.subtle, marginTop: 2 } }, x.path)),
+            x.managed ? null : h(Btn, { onClick: () => post('/adopt', { tool: x.id, path: x.path }).then(() => { setDetail({}); refresh(); }, (e) => setErr(String(e.message || e))) }, '使用系统版本')))
+          : h('div', { style: { fontSize: 11.5, color: C.subtle } }, '点右侧「检查」扫描 PATH')),
         err ? h('div', { style: { marginTop: 12, padding: '8px 12px', borderRadius: 8, border: '1px solid ' + C.error, color: C.error, whiteSpace: 'pre-wrap' } }, err) : null,
         notice ? h('div', { onClick: () => setNotice(''), style: { marginTop: 12, padding: '8px 12px', borderRadius: 8, background: C.panel, fontSize: 12, cursor: 'pointer' } }, notice) : null,
         job ? h('div', { style: { marginTop: 12 } }, h(Progress, { job: job, onCancel: () => post('/cancel', { job: job.id }).catch(() => {}) })) : null,
@@ -521,11 +529,11 @@ window.__ModuleLoader__.load({
             return h('button', { key: key, type: 'button', onClick: () => setCat(key), style: { font: 'inherit', fontSize: 12, padding: '3px 10px', borderRadius: 999, cursor: 'pointer', color: isActive ? C.brand : C.text, background: isActive ? C.surface : 'transparent', border: '1px solid ' + (isActive ? C.brand : C.border), fontWeight: isActive ? 600 : 400 } }, pair[1] + ' ' + count);
           })) : null,
         openAvailable ? list.map(card) : null,
-        h('h2', { style: { fontSize: 14, fontWeight: 600, marginTop: 24 } }, '自定义链接安装'),
-        h('div', { style: { display: 'flex', gap: 6 } },
-          h('input', { placeholder: '工具 id', value: customId, onChange: (e) => setCustomId(e.target.value), style: input() }),
-          h('input', { placeholder: 'https 直链', value: customUrl, onChange: (e) => setCustomUrl(e.target.value), style: Object.assign(input(), { flex: 1 }) }),
-          h(Btn, { disabled: !customId.trim() || !customUrl.trim(), onClick: () => start(customId.trim(), customUrl.trim()) }, '下载并安装')),
+        h(Section, { top: 24, title: '自定义链接安装', summary: '从任意 https 直链装一个工具', open: openCustom, onToggle: () => setOpenCustom(!openCustom) },
+          h('div', { style: { display: 'flex', gap: 6 } },
+            h('input', { placeholder: '工具 id', value: customId, onChange: (e) => setCustomId(e.target.value), style: input() }),
+            h('input', { placeholder: 'https 直链', value: customUrl, onChange: (e) => setCustomUrl(e.target.value), style: Object.assign(input(), { flex: 1 }) }),
+            h(Btn, { disabled: !customId.trim() || !customUrl.trim(), onClick: () => start(customId.trim(), customUrl.trim()) }, '下载并安装'))),
         h(ConnectSection),
         h(Scripts),
         h(HintSection));
