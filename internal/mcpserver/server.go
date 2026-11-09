@@ -201,12 +201,11 @@ func (s *Service) SaveScript(spec install.ScriptSpec) (SaveScriptOutput, error) 
 	return SaveScriptOutput{Archived: manifest.ID, Script: manifest.Source, Interpreter: manifest.Command}, nil
 }
 
-// RuntimesOutput lists the languages this machine can run.
-type RuntimesOutput struct {
-	Runtimes []RuntimeView `json:"runtimes"`
-}
-
 // ---- MCP tool inputs ----
+
+type runtimesInput struct {
+	Refresh bool `json:"refresh,omitempty" jsonschema:"re-probe instead of using the cached snapshot (use after installing a new language)"`
+}
 
 type listInput struct{}
 
@@ -297,9 +296,10 @@ func (s *Service) NewServer() *mcp.Server {
 
 	mcp.AddTool(server, &mcp.Tool{
 		Name:        "toolbox_runtimes",
-		Description: "List the programming runtimes and compilers this machine can actually execute (node, python, go, rustc, powershell, …) with their versions. Call this before writing any script so the language you pick exists here — dense computation favors Go/Rust, text and data work favors Python, Windows system tasks favor PowerShell 5.1.",
-	}, func(ctx context.Context, req *mcp.CallToolRequest, in struct{}) (*mcp.CallToolResult, RuntimesOutput, error) {
-		return nil, RuntimesOutput{Runtimes: Runtimes()}, nil
+		Description: "List the interpreters and compilers this machine can actually execute, with the exact version found (python 3.12 / node 24 / powershell 5.1 / pwsh 7 / go / rustc …). Call this BEFORE writing any script: the version decides the dialect. `notes` on each entry records the traps (e.g. Windows PowerShell 5.1 has no ?:, ?? or && / ||, Python 3.8 has no match statement). Results are cached on disk; pass refresh=true after installing something new. Only languages with an `ext` can host an archived script via toolbox_save_script.",
+	}, func(ctx context.Context, req *mcp.CallToolRequest, in runtimesInput) (*mcp.CallToolResult, RuntimesOutput, error) {
+		out, err := s.Runtimes(ctx, in.Refresh)
+		return nil, out, err
 	})
 
 	return server

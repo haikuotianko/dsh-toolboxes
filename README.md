@@ -74,6 +74,22 @@ toolbox -ui
 
 运行记录写在 `<root>/runs/<id>.json` + `<id>.log`，所以**不同进程**（AI 的 stdio 服务 / 管理页的 HTTP 服务）看到的是同一份状态。
 
+## 语言版本
+
+AI 写 PowerShell 时最容易踩的坑是版本：`?:`、`??`、`&&`/`||` 只有 PowerShell 7 才有，Windows 自带的 5.1 会直接报错。所以工具箱在写脚本前会先报告**本机真实可用的语言和版本**：
+
+```
+python      3.12.14   interpreter  .py
+node        24.21.0   interpreter  .mjs
+powershell  5.1.26100 shell        .ps1   ← 红标：按 5.1 语法写
+go          1.25.0    compiler
+```
+
+- 探测结果缓存在 `<root>/runtimes.json`（12 小时有效），换窗口、换进程都不用重测；管理页点「重新检测」或 MCP 传 `refresh: true` 立即重测。
+- 每个条目带 `notes`，把最容易踩的差异写清楚（5.1 没有三元/空合并/管道链、`-Encoding utf8` 会写 BOM；Python 3.8 以下没有 `match`；Node 18 以下没有内置 `fetch`）。
+- `toolbox_save_script` 按语言取这里记录的**真实解释器路径**，归档的脚本和 `toolbox_run` 用的是同一套环境。
+- 内置覆盖 python / node / deno / bun / ruby / php / pwsh / powershell / go / rustc / cargo / dotnet / java / gcc / clang；其他语言在页面「脚本 → 语言…」里填 id + 命令路径即可加入，AI 之后也能看到并选择。
+
 ## 内置工具
 
 | 工具 | 作用 |
@@ -82,7 +98,7 @@ toolbox -ui
 | `toolbox_install` | 按目录安装；多源顺序尝试，失败自动切下一个；可传 `url` 自定义 |
 | `toolbox_run` | 运行已装工具，返回 exitCode / stdout / stderr（默认 120s 超时，上限 600s） |
 | `toolbox_remove` | 删除一个工具 |
-| `toolbox_runtimes` | 本机真正可执行的运行时（node / python / go / rustc / powershell…）及版本 |
+| `toolbox_runtimes` | 本机真正能跑的语言/编译器及**版本号**（python 3.12 / node 24 / powershell 5.1 / pwsh 7 / go / rustc…）；结果缓存在磁盘，`refresh` 强制重测 |
 | `toolbox_save_script` | 把通用脚本归档进工具箱，之后可用 `toolbox_run` 调 |
 
 目录默认 `$TOOLBOX_ROOT`，否则 `~/.toolbox`。布局：
@@ -95,6 +111,7 @@ toolbox -ui
   tools/<id>/README.md    用法说明
   runs/<id>.json          每条命令的运行记录
   runs/<id>.log           该命令的实时输出（管理页控制台读它）
+  runtimes.json           语言探测结果（版本、路径、检测时间），12 小时内复用
   .downloads/             断点续传的临时文件
 ```
 

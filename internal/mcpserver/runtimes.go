@@ -1,102 +1,60 @@
 package mcpserver
 
 import (
-	"os"
-	"os/exec"
-	"path/filepath"
-	"runtime"
-	"strings"
+	"context"
+	"time"
+
+	"github.com/haikuotianko/dsh-toolboxes/internal/runtimes"
 )
 
-// RuntimeView is one programming runtime found on this machine.
-type RuntimeView struct {
-	Name    string `json:"name"`
-	Command string `json:"command"`
-	Version string `json:"version,omitempty"`
-	Path    string `json:"path,omitempty"`
+// RuntimesOutput is the language / compiler inventory of this machine.
+type RuntimesOutput struct {
+	Host      string           `json:"host"`
+	CheckedAt time.Time        `json:"checkedAt"`
+	Cached    bool             `json:"cached"`
+	Runtimes  []runtimes.Entry `json:"runtimes"`
 }
 
-type runtimeProbe struct {
-	name    string
-	command string
-	args    []string
-}
-
-var runtimeProbes = []runtimeProbe{
-	{"node", "node", []string{"--version"}},
-	{"python", "python", []string{"--version"}},
-	{"python3", "python3", []string{"--version"}},
-	{"go", "go", []string{"version"}},
-	{"rustc", "rustc", []string{"--version"}},
-	{"cargo", "cargo", []string{"--version"}},
-	{"java", "java", []string{"-version"}},
-	{"dotnet", "dotnet", []string{"--version"}},
-	{"gcc", "gcc", []string{"--version"}},
-	{"clang", "clang", []string{"--version"}},
-	{"pwsh", "pwsh", []string{"--version"}},
-	{"powershell", "powershell.exe", []string{"-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"}},
-}
-
-// Runtimes reports the language runtimes and compilers this machine can execute,
-// so a script can be written in a language that is actually present.
-func Runtimes() []RuntimeView {
-	out := make([]RuntimeView, 0, len(runtimeProbes))
-	seen := map[string]bool{}
-	for _, probe := range runtimeProbes {
-		if seen[probe.name] {
-			continue
-		}
-		path, err := exec.LookPath(probe.command)
-		if err != nil {
-			continue
-		}
-		seen[probe.name] = true
-		view := RuntimeView{Name: probe.name, Command: probe.command, Path: path}
-		if version, err := exec.Command(path, probe.args...).CombinedOutput(); err == nil {
-			line := strings.TrimSpace(strings.SplitN(string(version), "\n", 2)[0])
-			if len(line) > 80 {
-				line = line[:80]
-			}
-			view.Version = line
-		}
-		out = append(out, view)
-	}
-	// DSH's bundled Python is usable even when nothing named python is on PATH.
-	if !seen["python"] {
-		if path := findBundledPython(); path != "python" {
-			view := RuntimeView{Name: "python (DSH bundled)", Command: path, Path: path}
-			if version, err := exec.Command(path, "--version").CombinedOutput(); err == nil {
-				view.Version = strings.TrimSpace(strings.SplitN(string(version), "\n", 2)[0])
-			}
-			out = append(out, view)
-		}
-	}
-	if runtime.GOOS == "windows" && !seen["powershell"] && !seen["pwsh"] {
-		out = append(out, RuntimeView{Name: "powershell (5.1 expected)", Command: "powershell.exe"})
-	}
-	return out
-}
-
-// findBundledPython locates the Python runtime DSH ships under DSH_HOME.
-func findBundledPython() string {
-	home := os.Getenv("DSH_HOME")
-	if home == "" {
-		if user, err := os.UserHomeDir(); err == nil {
-			home = filepath.Join(user, ".dsh")
-		}
-	}
-	if home == "" {
-		return "python"
-	}
-	entries, err := os.ReadDir(filepath.Join(home, "dsh-runtimes"))
+// Runtimes reports the interpreters and compilers this machine can actually
+// execute, with the version found. The probe is cached in <root>/runtimes.json
+// so a second window (or a second process) does not pay for it again; refresh
+// forces a fresh probe when the user just installed something.
+func (s *Service) Runtimes(ctx context.Context, refresh bool) (RuntimesOutput, error) {
+	snapshot, cached, err := runtimes.Get(ctx, s.root, runtimes.DefaultTTL, refresh)
 	if err != nil {
-		return "python"
+		return RuntimesOutput{}, err
 	}
-	for _, entry := range entries {
-		candidate := filepath.Join(home, "dsh-runtimes", entry.Name(), "dependencies", "python", "python.exe")
-		if _, statErr := os.Stat(candidate); statErr == nil {
-			return candidate
-		}
+	return RuntimesOutput{
+		Host:      snapshot.Host,
+		CheckedAt: snapshot.CheckedAt,
+		Cached:    cached,
+		Runtimes:  snapshot.Entries,
+	}, nil
+}
+
+// RuntimesSnapshot returns the cached inventory without probing.
+func (s *Service) RuntimesSnapshot() (runtimes.Snapshot, error) {
+	snapshot, err := runtimes.Load(s.root)
+	if err != nil {
+		return runtimes.Snapshot{}, err
 	}
-	return "python"
+	if snapshot == nil {
+		return runtimes.Snapshot{}, nil
+	}
+	return *snapshot, nil
+}
+
+// AddRuntime registers a language the built-in probe list does not know.
+func (s *Service) AddRuntime(ctx context.Context, id, name, command string) (runtimes.Snapshot, error) {
+	snapshot, err := runtimes.AddCustom(ctx, s.root, id, name, command)
+	if err != nil {
+		return runtimes.Snapshot{}, err
+	}
+	s.logf("runtime added: %s -> %s", id, command)
+	return snapshot, nil
+}
+
+// RemoveRuntime deletes a user-added language row.
+func (s *Service) RemoveRuntime(id string) (runtimes.Snapshot, error) {
+	return runtimes.RemoveCustom(s.root, id)
 }

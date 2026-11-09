@@ -16,10 +16,12 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/haikuotianko/dsh-toolboxes/internal/catalog"
+	"github.com/haikuotianko/dsh-toolboxes/internal/runtimes"
 	"github.com/haikuotianko/dsh-toolboxes/internal/store"
 )
 
@@ -125,20 +127,37 @@ type ScriptSpec struct {
 	Command     string
 }
 
+// scriptExtensions maps a script language to its file extension. Only
+// interpreter-style runtimes belong here: a compiler has nothing to run from a
+// single file.
+var scriptExtensions = map[string]string{
+	"python": "py", "node": "mjs", "deno": "mjs", "bun": "mjs",
+	"ruby": "rb", "php": "php", "powershell": "ps1", "pwsh": "ps1",
+}
+
 // SaveScript archives a reusable script into the toolbox.
 func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 	if !store.ValidID(spec.ID) {
 		return store.Manifest{}, fmt.Errorf("invalid tool id: %q", spec.ID)
 	}
-	extension := map[string]string{"python": "py", "node": "mjs", "powershell": "ps1"}[strings.ToLower(spec.Language)]
+	language := strings.ToLower(strings.TrimSpace(spec.Language))
+	extension := scriptExtensions[language]
 	if extension == "" {
-		return store.Manifest{}, fmt.Errorf("unsupported language %q (python | node | powershell)", spec.Language)
+		keys := make([]string, 0, len(scriptExtensions))
+		for key := range scriptExtensions {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		return store.Manifest{}, fmt.Errorf("unsupported language %q (%s)", spec.Language, strings.Join(keys, " | "))
 	}
 	interpreter := spec.Command
 	if interpreter == "" {
-		switch strings.ToLower(spec.Language) {
-		case "node":
-			interpreter = "node"
+		// The cached runtime probe knows the interpreter this machine actually
+		// has (Python bundled with DSH, pwsh vs powershell.exe, …).
+		interpreter = runtimes.InterpreterFor(root, language)
+	}
+	if interpreter == "" {
+		switch language {
 		case "powershell":
 			// Windows ships Windows PowerShell 5.1 as powershell.exe; pwsh is an
 			// optional install. Pick whichever exists instead of hardcoding pwsh.
@@ -149,7 +168,7 @@ func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 			} else {
 				interpreter = "powershell.exe"
 			}
-		default:
+		case "python":
 			// DSH ships its own Python runtime; "python" is often absent from PATH.
 			if path, err := exec.LookPath("python"); err == nil {
 				interpreter = path
@@ -157,6 +176,14 @@ func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 				interpreter = path
 			} else {
 				interpreter = findBundledPython()
+			}
+		default:
+			// node / deno / bun / ruby / php / pwsh: the bare command is fine,
+			// resolve it on PATH when we can so the manifest records a real path.
+			if path, err := exec.LookPath(language); err == nil {
+				interpreter = path
+			} else {
+				interpreter = language
 			}
 		}
 	}
@@ -166,7 +193,7 @@ func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 	}
 	scriptPath := filepath.Join(dir, spec.ID+"."+extension)
 	body := spec.Content
-	if strings.ToLower(spec.Language) == "powershell" && !strings.HasPrefix(body, "\uFEFF") {
+	if language == "powershell" && !strings.HasPrefix(body, "\uFEFF") {
 		// Windows PowerShell 5.1 decodes BOM-less files as ANSI: a UTF-8 script
 		// with Chinese comments then fails to parse. Always write the BOM.
 		body = "\uFEFF" + body
@@ -180,7 +207,7 @@ func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 		Description: spec.Description,
 		Usage:       spec.Usage,
 		Kind:        "script",
-		Language:    strings.ToLower(spec.Language),
+		Language:    language,
 		Command:     interpreter,
 		Args:        []string{scriptPath},
 		Source:      scriptPath,

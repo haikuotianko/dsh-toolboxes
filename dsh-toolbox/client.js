@@ -181,9 +181,25 @@ window.__ModuleLoader__.load({
       const [out, setOut] = React.useState('');
       const [err, setErr] = React.useState('');
       const [open, setOpen] = React.useState(false);
+      const [env, setEnv] = React.useState(null);
+      const [envOpen, setEnvOpen] = React.useState(false);
+      const [envBusy, setEnvBusy] = React.useState(false);
+      const [langID, setLangID] = React.useState('');
+      const [langName, setLangName] = React.useState('');
+      const [langCmd, setLangCmd] = React.useState('');
 
       const load = React.useCallback(() => { request('/scripts').then((v) => setList(v.scripts || []), (e) => setErr(String(e.message || e))); }, []);
       React.useEffect(() => { load(); }, [load]);
+
+      // The language inventory is cached on disk (the agent reads the same file),
+      // so this is usually a quick read; refresh re-probes after an install.
+      const loadEnv = React.useCallback((refresh) => {
+        setEnvBusy(true);
+        request('/runtimes' + (refresh ? '?refresh=1' : ''))
+          .then((v) => setEnv(v), (e) => setErr(String(e.message || e)))
+          .then(() => setEnvBusy(false), () => setEnvBusy(false));
+      }, []);
+      React.useEffect(() => { loadEnv(false); }, [loadEnv]);
 
       const blank = { name: '', title: '', description: '', usage: '', language: 'python', content: '' };
       const openRun = (s) => {
@@ -204,6 +220,44 @@ window.__ModuleLoader__.load({
         h('div', { style: { fontSize: 11.5, color: C.subtle, marginBottom: 2 } }, label),
         h('textarea', { value: draft[key] || '', rows: rows, onChange: (e) => setDraft(Object.assign({}, draft, { [key]: e.target.value })), style: Object.assign(input(), { width: '100%', boxSizing: 'border-box', resize: 'vertical' }) }));
 
+      const addLang = () => {
+        post('/runtimes', { id: langID.trim(), name: langName.trim(), command: langCmd.trim() })
+          .then(() => { setLangID(''); setLangName(''); setLangCmd(''); loadEnv(false); },
+            (e) => setErr(String(e.message || e)));
+      };
+      const removeLang = (id) => {
+        post('/runtimes/remove', { id }).then(() => loadEnv(false), (e) => setErr(String(e.message || e)));
+      };
+
+      const languages = (env && env.runtimes) || [];
+      const scriptable = languages.filter((x) => x && x.id && x.ext);
+      const chip = (x) => {
+        const old = x.id === 'powershell' && parseInt(x.version || '0', 10) < 7;
+        return h('span', {
+          key: x.id + x.command,
+          title: (x.path || x.command) + (x.notes ? '\n' + x.notes : ''),
+          style: { display: 'inline-flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, padding: '2px 9px', borderRadius: 999, border: '1px solid ' + (old ? C.error : C.border), color: old ? C.error : C.text },
+        },
+          h('code', { style: { fontWeight: 600 } }, x.id),
+          h('span', { style: { color: old ? C.error : C.subtle } }, x.version || '?'),
+          x.source === 'custom' ? h('span', { style: { fontSize: 10, color: C.subtle } }, '自定义') : null);
+      };
+      const envPanel = envOpen ? h(Box, { style: { marginTop: 8 } },
+        h('div', { style: { fontSize: 11.5, color: C.subtle, marginBottom: 6 } },
+          '检测于 ' + (env && env.checkedAt ? new Date(env.checkedAt).toLocaleString() : '—') +
+          ' · 结果写在工具箱目录的 runtimes.json，12 小时内直接复用；装了新语言点「重新检测」'),
+        languages.map((x) => h('div', { key: x.id + x.command, style: { display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid ' + C.border, fontSize: 11.5 } },
+          h('code', { style: { fontWeight: 600, minWidth: 88 } }, x.id),
+          h('span', { style: { minWidth: 88, color: x.found ? C.text : C.error } }, x.version || (x.found ? '未识别' : '未找到')),
+          h('span', { style: { color: C.subtle, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, x.path || x.command),
+          h('span', { style: { color: C.subtle, minWidth: 44 } }, x.ext ? '.' + x.ext : '编译型'),
+          x.source === 'custom' ? h(Btn, { tone: 'danger', onClick: () => removeLang(x.id) }, '移除') : null)),
+        h('div', { style: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' } },
+          h('input', { placeholder: 'id，如 rust', value: langID, onChange: (e) => setLangID(e.target.value), style: Object.assign(input(), { width: 110 }) }),
+          h('input', { placeholder: '名称（可空）', value: langName, onChange: (e) => setLangName(e.target.value), style: Object.assign(input(), { width: 120 }) }),
+          h('input', { placeholder: '命令或绝对路径，如 rustc', value: langCmd, onChange: (e) => setLangCmd(e.target.value), style: Object.assign(input(), { flex: 1, minWidth: 200 }) }),
+          h(Btn, { disabled: !langID.trim() || !langCmd.trim(), onClick: addLang }, '添加语言'))) : null;
+
       return h('div', { style: { marginTop: 24 } },
         h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10 } },
           h('span', { style: { color: C.subtle, width: 10, cursor: 'pointer' }, onClick: () => setOpen(!open) }, open ? 'v' : '>'),
@@ -211,6 +265,13 @@ window.__ModuleLoader__.load({
           h('span', { style: { fontSize: 11.5, color: C.subtle, flex: 0, maxWidth: 420, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, (list || []).map((x) => x.id).join(', ')),
           h('span', { style: { fontSize: 12, color: C.subtle } }, 'AI 归档的脚本；运行前填参数'),
           h('div', { style: { marginLeft: 'auto' } }, h(Btn, { onClick: () => setDraft(Object.assign({}, blank)) }, '+ 新建'))),
+        h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 6, paddingLeft: 20 } },
+          scriptable.length ? scriptable.map(chip)
+            : h('span', { style: { fontSize: 11.5, color: C.subtle } }, envBusy ? '正在检测本机语言…' : '还没有语言记录，点「重新检测」'),
+          h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6 } },
+            h(Btn, { onClick: () => loadEnv(true), disabled: envBusy }, envBusy ? '检测中…' : '重新检测'),
+            h(Btn, { onClick: () => setEnvOpen(!envOpen) }, envOpen ? '收起语言' : '语言…'))),
+        envPanel,
         err ? h('div', { style: { color: C.error, fontSize: 11.5, marginTop: 6 } }, err) : null,
         draft ? h(Box, { style: { marginTop: 8 } },
           field('id', 'name', 1), field('标题', 'title', 1), field('用途', 'description', 1), field('调用示例', 'usage', 2),

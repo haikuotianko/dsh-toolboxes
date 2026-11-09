@@ -50,9 +50,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/source", s.handleSaveSource)
 	mux.HandleFunc("/api/import", s.handleImport)
 	mux.HandleFunc("/api/env", s.handleEnv)
-	mux.HandleFunc("/api/runtimes", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]any{"runtimes": mcpserver.Runtimes()})
-	})
+	s.registerRuntimeRoutes(mux)
 	mux.HandleFunc("/api/adopt", s.handleAdopt)
 	mux.HandleFunc("/api/enable", s.handleEnable)
 	mux.HandleFunc("/api/remove", s.handleRemove)
