@@ -39,8 +39,6 @@
   .chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
   .chip { display:inline-flex; align-items:baseline; gap:4px; font-size:11.5px; padding:2px 9px; border-radius:999px; border:1px solid var(--line); }
   .chip code { font-weight:600; }
-  .chip.warn, .chip.warn .warn { border-color:var(--err); color:var(--err); }
-  .chip.warn .muted { color:var(--err); }
 
   /* 卡片：圆角 10、内边距 10/12，和插件页 Box 一致 */
   .card { border:1px solid var(--line); border-radius:var(--radius); margin-bottom:8px; background:var(--bg); }
@@ -496,10 +494,13 @@ function renderRuntimes(data) {
   const chipHost = $('lang-chips'); chipHost.innerHTML = '';
   const scriptable = list.filter((x) => x.ext);
   if (!scriptable.length) chipHost.append(el('span', { class: 'muted' }, '还没有语言记录'));
+  const hasPwsh = list.some((y) => y.id === 'pwsh' && y.found);
   for (const x of scriptable) {
-    const old = x.id === 'powershell' && parseInt(x.version || '0', 10) < 7;
-    chipHost.append(el('span', { class: 'chip' + (old ? ' warn' : ''), title: (x.path || x.command) + (x.notes ? '\n' + x.notes : '') },
-      el('code', {}, x.id), el('span', { class: old ? 'warn' : 'muted' }, ' ' + (x.version || '?'))));
+    chipHost.append(el('span', { class: 'chip', title: (x.path || x.command) + (x.notes ? '\n' + x.notes : '') },
+      el('code', {}, x.id),
+      el('span', { class: 'muted' }, ' ' + (x.version || '?')),
+      (x.id === 'powershell' && !hasPwsh) ? el('span', { class: 'muted' }, ' 无 pwsh 7') : null,
+      x.source === 'custom' ? el('span', { class: 'muted' }, ' 自定义') : null));
   }
   $('runtimes-meta').textContent = '检测于 ' + (data.checkedAt ? new Date(data.checkedAt).toLocaleString() : '—') +
     ' · ' + (data.mode === 'exec' ? '精确模式（跑过 --version）' : '环境变量模式（只读 PATH / *_HOME，不启动进程）') +

@@ -237,15 +237,19 @@ window.__ModuleLoader__.load({
 
       const languages = (env && env.runtimes) || [];
       const scriptable = languages.filter((x) => x && x.id && x.ext);
+      const hasPwsh = languages.some((x) => x && x.id === 'pwsh' && x.found);
       const chip = (x) => {
-        const old = x.id === 'powershell' && parseInt(x.version || '0', 10) < 7;
+        // Windows always has 5.1; the only thing worth flagging is that pwsh 7
+        // is missing, and even that is a hint, not an error.
+        const noPwsh = x.id === 'powershell' && !hasPwsh;
         return h('span', {
           key: x.id + x.command,
           title: (x.path || x.command) + (x.notes ? '\n' + x.notes : ''),
-          style: { display: 'inline-flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, padding: '2px 9px', borderRadius: 999, border: '1px solid ' + (old ? C.error : C.border), color: old ? C.error : C.text },
+          style: { display: 'inline-flex', alignItems: 'baseline', gap: 5, fontSize: 11.5, padding: '2px 9px', borderRadius: 999, border: '1px solid ' + C.border, color: C.text },
         },
           h('code', { style: { fontWeight: 600 } }, x.id),
-          h('span', { style: { color: old ? C.error : C.subtle } }, x.version || '?'),
+          h('span', { style: { color: C.subtle } }, x.version || '?'),
+          noPwsh ? h('span', { style: { fontSize: 10, color: C.subtle } }, '无 pwsh 7') : null,
           x.source === 'custom' ? h('span', { style: { fontSize: 10, color: C.subtle } }, '自定义') : null);
       };
       const envPanel = envOpen ? h(Box, { style: { marginTop: 8 } },
