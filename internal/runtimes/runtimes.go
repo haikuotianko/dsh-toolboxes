@@ -215,7 +215,7 @@ func Refresh(ctx context.Context, root string, exact bool) (Snapshot, error) {
 func discover(t target) (Entry, bool) {
 	entry := Entry{ID: t.id, Name: t.name, Kind: t.kind, Ext: t.ext, Found: true}
 
-	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+	for _, dir := range searchDirs() {
 		if dir == "" {
 			continue
 		}
@@ -247,6 +247,49 @@ func discover(t target) (Entry, bool) {
 		}
 	}
 	return Entry{}, false
+}
+
+// searchDirs is the PATH to search: this process' own PATH plus the one the
+// registry (or the OS) currently configures, so a tool installed after start-up
+// is still found. Order matters: the process PATH wins.
+func searchDirs() []string {
+	seen := map[string]bool{}
+	out := make([]string, 0, 32)
+	add := func(dir string) {
+		dir = strings.TrimSpace(dir)
+		if dir == "" || seen[strings.ToLower(dir)] {
+			return
+		}
+		seen[strings.ToLower(dir)] = true
+		out = append(out, dir)
+	}
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		add(dir)
+	}
+	for _, value := range configuredPathDirs() {
+		for _, dir := range filepath.SplitList(value) {
+			add(dir)
+		}
+	}
+	for _, dir := range wellKnownDirs() {
+		add(dir)
+	}
+	return out
+}
+
+// resolveCommand finds a command on any search directory (PATH lookups alone
+// miss tools installed after this process started).
+func resolveCommand(name string) string {
+	if path, err := exec.LookPath(name); err == nil && isFile(path) {
+		return path
+	}
+	for _, dir := range searchDirs() {
+		candidate := filepath.Join(dir, exeName(name))
+		if isFile(candidate) {
+			return candidate
+		}
+	}
+	return ""
 }
 
 // guessVersion derives a version from the environment: an explicit *_VERSION
@@ -586,7 +629,9 @@ func isFile(path string) bool {
 		return false
 	}
 	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
+	// A 0-byte entry is not an executable: Windows Store "app execution aliases"
+	// (python.exe, …) are empty reparse points that only work through the shell.
+	return err == nil && !info.IsDir() && info.Size() > 0
 }
 
 // exeName adds .exe on Windows when the catalog name omits it.
