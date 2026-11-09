@@ -11,22 +11,29 @@ import (
 type RuntimesOutput struct {
 	Host      string           `json:"host"`
 	CheckedAt time.Time        `json:"checkedAt"`
+	Mode      string           `json:"mode"`
 	Cached    bool             `json:"cached"`
 	Runtimes  []runtimes.Entry `json:"runtimes"`
 }
 
-// Runtimes reports the interpreters and compilers this machine can actually
-// execute, with the version found. The probe is cached in <root>/runtimes.json
-// so a second window (or a second process) does not pay for it again; refresh
-// forces a fresh probe when the user just installed something.
-func (s *Service) Runtimes(ctx context.Context, refresh bool) (RuntimesOutput, error) {
-	snapshot, cached, err := runtimes.Get(ctx, s.root, runtimes.DefaultTTL, refresh)
+// Runtimes reports the interpreters and compilers this machine can execute.
+//
+// Discovery is environment-only (PATH and *_HOME / *_ROOT variables) and starts
+// no process, so it is cheap and side-effect free; versions come from those
+// variables or from a version-looking directory in the install path. Pass exec
+// to additionally run one `<cmd> --version` per runtime for exact versions.
+//
+// The result is cached in <root>/runtimes.json so another window (or another
+// process) does not pay for it again.
+func (s *Service) Runtimes(ctx context.Context, refresh, exec bool) (RuntimesOutput, error) {
+	snapshot, cached, err := runtimes.Get(ctx, s.root, runtimes.DefaultTTL, refresh, exec)
 	if err != nil {
 		return RuntimesOutput{}, err
 	}
 	return RuntimesOutput{
 		Host:      snapshot.Host,
 		CheckedAt: snapshot.CheckedAt,
+		Mode:      snapshot.Mode,
 		Cached:    cached,
 		Runtimes:  snapshot.Entries,
 	}, nil
@@ -44,10 +51,9 @@ func (s *Service) RuntimesSnapshot() (runtimes.Snapshot, error) {
 	return *snapshot, nil
 }
 
-// AddRuntime registers a language the built-in probe list does not know.
-// command may be a bare name ("rust") or a path; ext enables script archiving.
-func (s *Service) AddRuntime(ctx context.Context, id, name, command, ext string) (runtimes.Snapshot, error) {
-	snapshot, err := runtimes.AddCustom(ctx, s.root, id, name, command, ext)
+// AddRuntime registers a language the built-in list does not know.
+func (s *Service) AddRuntime(ctx context.Context, id, name, command, ext, version string, exec bool) (runtimes.Snapshot, error) {
+	snapshot, err := runtimes.AddCustom(ctx, s.root, id, name, command, ext, version, exec)
 	if err != nil {
 		return runtimes.Snapshot{}, err
 	}

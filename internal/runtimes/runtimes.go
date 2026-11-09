@@ -3,13 +3,14 @@
 // installed instead of guessing (PowerShell 5.1 does not understand the syntax
 // of 7, and a machine may have neither py nor python on PATH).
 //
-// Probing spawns processes, and the MCP server and the manager page are
-// different processes, so the result is cached in <root>/runtimes.json:
+// Discovery is environment-driven and side-effect free: it reads PATH and the
+// usual *_HOME / *_ROOT variables and stats those directories. It never spawns
+// an interpreter by default — `--version` is only run when the caller asks for
+// exact versions (exec), because starting a process per language is slow and,
+// on Windows, flashes a console window each time.
 //
-//	{"checkedAt":"…","host":"windows-amd64","entries":[…]}
-//
-// Callers ask for a snapshot; it is re-probed only when the cached one is older
-// than the TTL, missing, or explicitly refreshed.
+// The result is cached in <root>/runtimes.json, shared by the MCP server and the
+// manager page (different processes), so a new window does not re-probe.
 package runtimes
 
 import (
@@ -32,20 +33,25 @@ const FileName = "runtimes.json"
 // DefaultTTL is how long a snapshot is trusted before a re-probe.
 const DefaultTTL = 12 * time.Hour
 
-// probeTimeout bounds one version call: a broken interpreter must not hang the
-// whole refresh.
+// probeTimeout bounds one version call in exec mode.
 const probeTimeout = 8 * time.Second
+
+// How a snapshot was produced.
+const (
+	ModeEnv  = "env"  // environment only: PATH + *_HOME, no process started
+	ModeExec = "exec" // additionally ran `<cmd> --version` for exact versions
+)
 
 // Entry is one runtime this machine can execute.
 type Entry struct {
-	ID      string `json:"id"`              // python | node | powershell | rustc | custom id
-	Name    string `json:"name"`            // display name
-	Kind    string `json:"kind"`            // interpreter | compiler | shell
-	Command string `json:"command"`         // what to execute (bare name or path)
-	Path    string `json:"path,omitempty"`  // resolved absolute path
+	ID      string `json:"id"`               // python | node | powershell | rustc | custom id
+	Name    string `json:"name"`             // display name
+	Kind    string `json:"kind"`             // interpreter | compiler | shell
+	Command string `json:"command"`          // what to execute (bare name or path)
+	Path    string `json:"path,omitempty"`   // resolved absolute path
 	Version string `json:"version,omitempty"`
-	Raw     string `json:"raw,omitempty"`   // first line of --version output
-	Source  string `json:"source,omitempty"` // path | dsh-bundled | custom
+	Raw     string `json:"raw,omitempty"`    // first line of --version output (exec mode)
+	Source  string `json:"source,omitempty"` // env:PATH | env:JAVA_HOME | dsh-bundled | custom
 	Found   bool   `json:"found"`
 	Error   string `json:"error,omitempty"`
 	// Ext is the script extension this runtime can host ("" = not scriptable,
@@ -58,11 +64,18 @@ type Entry struct {
 type Snapshot struct {
 	CheckedAt time.Time `json:"checkedAt"`
 	Host      string    `json:"host"`
-	Entries   []Entry   `json:"entries"`
+	// Mode is env or exec: it tells the reader whether Version is exact.
+	Mode    string  `json:"mode,omitempty"`
+	Entries []Entry `json:"entries"`
 }
 
 // Scriptable reports whether a saved script can run on this runtime.
 func (e Entry) Scriptable() bool { return e.Found && e.Ext != "" }
+
+type envDir struct {
+	name string // environment variable holding a prefix
+	sub  string // suffix appended to it
+}
 
 type target struct {
 	id          string
@@ -71,41 +84,58 @@ type target struct {
 	commands    []string
 	versionArgs []string
 	ext         string
+	// envDirs are extra install roots advertised by the environment, tried when
+	// PATH has no match (JAVA_HOME/bin, GOROOT/bin, …).
+	envDirs []envDir
+	// versionEnv carry a version string, often in CI images.
+	versionEnv []string
+	// fixedVersion is what the product always reports (Windows PowerShell is 5.1
+	// on every Windows since 2016); used when no number is derivable.
+	fixedVersion string
 }
 
 // targets is the probe order: the first command that resolves wins.
 var targets = []target{
-	{id: "python", name: "Python", kind: "interpreter", commands: []string{"python", "python3", "py"}, versionArgs: []string{"--version"}, ext: "py"},
-	{id: "node", name: "Node.js", kind: "interpreter", commands: []string{"node"}, versionArgs: []string{"--version"}, ext: "mjs"},
-	{id: "deno", name: "Deno", kind: "interpreter", commands: []string{"deno"}, versionArgs: []string{"--version"}, ext: "mjs"},
-	{id: "bun", name: "Bun", kind: "interpreter", commands: []string{"bun"}, versionArgs: []string{"--version"}, ext: "mjs"},
-	{id: "ruby", name: "Ruby", kind: "interpreter", commands: []string{"ruby"}, versionArgs: []string{"--version"}, ext: "rb"},
-	{id: "php", name: "PHP", kind: "interpreter", commands: []string{"php"}, versionArgs: []string{"--version"}, ext: "php"},
-	{id: "pwsh", name: "PowerShell 7", kind: "shell", commands: []string{"pwsh"}, versionArgs: []string{"--version"}, ext: "ps1"},
-	{id: "powershell", name: "Windows PowerShell", kind: "shell", commands: []string{"powershell.exe", "powershell"}, versionArgs: []string{"-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"}, ext: "ps1"},
-	{id: "go", name: "Go", kind: "compiler", commands: []string{"go"}, versionArgs: []string{"version"}},
-	{id: "rustc", name: "Rust", kind: "compiler", commands: []string{"rustc"}, versionArgs: []string{"--version"}},
-	{id: "cargo", name: "Cargo", kind: "compiler", commands: []string{"cargo"}, versionArgs: []string{"--version"}},
-	{id: "dotnet", name: ".NET", kind: "compiler", commands: []string{"dotnet"}, versionArgs: []string{"--version"}},
-	{id: "java", name: "Java", kind: "compiler", commands: []string{"java"}, versionArgs: []string{"-version"}},
+	{id: "python", name: "Python", kind: "interpreter", commands: []string{"python", "python3", "py"}, versionArgs: []string{"--version"}, ext: "py", versionEnv: []string{"PYENV_VERSION", "PYTHON_VERSION"}},
+	{id: "node", name: "Node.js", kind: "interpreter", commands: []string{"node"}, versionArgs: []string{"--version"}, ext: "mjs", versionEnv: []string{"NODE_VERSION", "NVM_CURRENT"}},
+	{id: "deno", name: "Deno", kind: "interpreter", commands: []string{"deno"}, versionArgs: []string{"--version"}, ext: "mjs", envDirs: []envDir{{"DENO_INSTALL", "bin"}}},
+	{id: "bun", name: "Bun", kind: "interpreter", commands: []string{"bun"}, versionArgs: []string{"--version"}, ext: "mjs", envDirs: []envDir{{"BUN_INSTALL", "bin"}}},
+	{id: "ruby", name: "Ruby", kind: "interpreter", commands: []string{"ruby"}, versionArgs: []string{"--version"}, ext: "rb", versionEnv: []string{"RBENV_VERSION"}},
+	{id: "php", name: "PHP", kind: "interpreter", commands: []string{"php"}, versionArgs: []string{"--version"}, ext: "php", versionEnv: []string{"PHP_VERSION"}},
+	{id: "pwsh", name: "PowerShell 7", kind: "shell", commands: []string{"pwsh"}, versionArgs: []string{"--version"}, ext: "ps1", fixedVersion: "7"},
+	{id: "powershell", name: "Windows PowerShell", kind: "shell", commands: []string{"powershell"}, versionArgs: []string{"-NoProfile", "-Command", "$PSVersionTable.PSVersion.ToString()"}, ext: "ps1", fixedVersion: "5.1"},
+	{id: "go", name: "Go", kind: "compiler", commands: []string{"go"}, versionArgs: []string{"version"}, envDirs: []envDir{{"GOROOT", "bin"}}},
+	{id: "rustc", name: "Rust", kind: "compiler", commands: []string{"rustc"}, versionArgs: []string{"--version"}, envDirs: []envDir{{"CARGO_HOME", "bin"}}, versionEnv: []string{"RUSTUP_TOOLCHAIN"}},
+	{id: "cargo", name: "Cargo", kind: "compiler", commands: []string{"cargo"}, versionArgs: []string{"--version"}, envDirs: []envDir{{"CARGO_HOME", "bin"}}, versionEnv: []string{"RUSTUP_TOOLCHAIN"}},
+	{id: "dotnet", name: ".NET", kind: "compiler", commands: []string{"dotnet"}, versionArgs: []string{"--version"}, envDirs: []envDir{{"DOTNET_ROOT", ""}}},
+	{id: "java", name: "Java", kind: "compiler", commands: []string{"java"}, versionArgs: []string{"-version"}, envDirs: []envDir{{"JAVA_HOME", "bin"}}, versionEnv: []string{"JAVA_VERSION"}},
 	{id: "gcc", name: "GCC", kind: "compiler", commands: []string{"gcc"}, versionArgs: []string{"--version"}},
 	{id: "clang", name: "Clang", kind: "compiler", commands: []string{"clang"}, versionArgs: []string{"--version"}},
 }
 
-var versionPattern = regexp.MustCompile(`\d+(?:\.\d+)+|\d+`)
+var (
+	// versionPattern needs at least one dot, so `python3.exe` in a file name is
+	// not mistaken for "version 3".
+	versionPattern = regexp.MustCompile(`\d+(?:\.\d+)+`)
+	// pathVersionPattern is stricter: a directory is only trusted as a version
+	// when it has three parts, otherwise `WindowsPowerShell\v1.0` and
+	// `M:\Go1.24` (a stale install dir) would report the wrong numbers.
+	pathVersionPattern = regexp.MustCompile(`\d+\.\d+\.\d+`)
+	idPattern          = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,31}$`)
+)
 
-// Get returns the cached snapshot, probing first when it is missing, older than
-// ttl, or refresh is set. cached reports whether the file was used as is.
-func Get(ctx context.Context, root string, ttl time.Duration, refresh bool) (Snapshot, bool, error) {
+// Get returns the cached snapshot, re-discovering when it is missing, older
+// than ttl, or refresh is set. exec switches to exact versions.
+func Get(ctx context.Context, root string, ttl time.Duration, refresh, exact bool) (Snapshot, bool, error) {
 	if !refresh {
 		if snapshot, err := Load(root); err == nil && snapshot != nil {
 			age := time.Since(snapshot.CheckedAt)
-			if age >= 0 && age < ttl {
+			if age >= 0 && age < ttl && (!exact || snapshot.Mode == ModeExec) {
 				return *snapshot, true, nil
 			}
 		}
 	}
-	snapshot, err := Refresh(ctx, root)
+	snapshot, err := Refresh(ctx, root, exact)
 	if err != nil {
 		return Snapshot{}, false, err
 	}
@@ -128,26 +158,46 @@ func Load(root string) (*Snapshot, error) {
 	return &snapshot, nil
 }
 
-// Refresh probes every known runtime, keeps user-added entries, and saves.
-func Refresh(ctx context.Context, root string) (Snapshot, error) {
+// Refresh discovers runtimes from the environment, keeps user-added entries,
+// and saves. With exec it also runs one version command per runtime.
+func Refresh(ctx context.Context, root string, exact bool) (Snapshot, error) {
 	custom := customEntries(root)
-	snapshot := Snapshot{CheckedAt: time.Now(), Host: runtime.GOOS + "-" + runtime.GOARCH}
+	mode := ModeEnv
+	if exact {
+		mode = ModeExec
+	}
+	snapshot := Snapshot{CheckedAt: time.Now(), Host: runtime.GOOS + "-" + runtime.GOARCH, Mode: mode}
 
 	for _, t := range targets {
-		if entry, ok := probe(ctx, t); ok {
-			snapshot.Entries = append(snapshot.Entries, entry)
+		entry, ok := discover(t)
+		if !ok {
+			continue
 		}
+		if exact {
+			entry.Version, entry.Raw = probeVersion(ctx, entry.Path, t.versionArgs)
+			if entry.Version == "" {
+				entry.Version = entry.fallbackVersion(t)
+			}
+		}
+		entry.Notes = notes(entry)
+		snapshot.Entries = append(snapshot.Entries, entry)
 	}
-	// DSH ships its own Python; it is usable even with nothing on PATH.
 	if !hasID(snapshot.Entries, "python") {
 		if path := bundledPython(); path != "" {
 			entry := Entry{ID: "python", Name: "Python (DSH bundled)", Kind: "interpreter", Command: path, Path: path, Source: "dsh-bundled", Found: true, Ext: "py"}
-			entry.Version, entry.Raw = probeVersion(ctx, path, []string{"--version"})
+			entry.Version = versionFromPath(path)
+			if exact {
+				entry.Version, entry.Raw = probeVersion(ctx, path, []string{"--version"})
+			}
 			entry.Notes = notes(entry)
 			snapshot.Entries = append(snapshot.Entries, entry)
 		}
 	}
 	for _, entry := range custom {
+		if exact && entry.Found {
+			entry.Version = firstNonEmpty(entry.Version, "")
+		}
+		entry.Notes = notes(entry)
 		snapshot.Entries = append(snapshot.Entries, entry)
 	}
 
@@ -158,6 +208,80 @@ func Refresh(ctx context.Context, root string) (Snapshot, error) {
 		return snapshot, err
 	}
 	return snapshot, nil
+}
+
+// discover finds one runtime without starting it: PATH first, then the
+// environment-declared install roots (JAVA_HOME/bin, GOROOT/bin, …).
+func discover(t target) (Entry, bool) {
+	entry := Entry{ID: t.id, Name: t.name, Kind: t.kind, Ext: t.ext, Found: true}
+
+	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+		if dir == "" {
+			continue
+		}
+		for _, command := range t.commands {
+			candidate := filepath.Join(dir, exeName(command))
+			if isFile(candidate) {
+				entry.Command = command
+				entry.Path = candidate
+				entry.Source = "env:PATH"
+				entry.Version = entry.guessVersion(t, candidate)
+				return entry, true
+			}
+		}
+	}
+	for _, root := range t.envDirs {
+		base := strings.TrimSpace(os.Getenv(root.name))
+		if base == "" {
+			continue
+		}
+		for _, command := range t.commands {
+			candidate := filepath.Join(base, root.sub, exeName(command))
+			if isFile(candidate) {
+				entry.Command = candidate
+				entry.Path = candidate
+				entry.Source = "env:" + root.name
+				entry.Version = entry.guessVersion(t, candidate)
+				return entry, true
+			}
+		}
+	}
+	return Entry{}, false
+}
+
+// guessVersion derives a version from the environment: an explicit *_VERSION
+// variable first, then a version-looking directory in the install path, then a
+// product constant (Windows PowerShell is 5.1 everywhere).
+func (e Entry) guessVersion(t target, path string) string {
+	for _, name := range t.versionEnv {
+		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+			if match := versionPattern.FindString(value); match != "" {
+				return match
+			}
+		}
+	}
+	if version := versionFromPath(path); version != "" {
+		return version
+	}
+	return t.fixedVersion
+}
+
+func (e Entry) fallbackVersion(t target) string {
+	if e.Version != "" {
+		return e.Version
+	}
+	return t.fixedVersion
+}
+
+// versionFromPath looks for a version-looking segment in the directory part of
+// an install path (…/node-versions/v24.21.0/…, …/python-3.12.14/…). File names
+// are excluded on purpose: python3.exe is not version 3.
+func versionFromPath(path string) string {
+	dir := filepath.Dir(path)
+	if match := pathVersionPattern.FindString(dir); match != "" {
+		return match
+	}
+	return ""
 }
 
 // Save writes the snapshot atomically.
@@ -177,17 +301,15 @@ func Save(root string, snapshot Snapshot) error {
 	return os.Rename(temp, target)
 }
 
-// AddCustom registers a language the built-in probe list does not know (rust,
-// a portable python, a wrapper command…). ext is the script extension it can
-// host ("ts" → toolbox_save_script writes name.ts and runs `<command> name.ts`);
-// leave it empty for a compiler that cannot run a single file.
-// The command may be a bare name resolved on PATH ("rust") or an absolute path.
-// A command that is not installed yet is still saved, marked found=false.
-func AddCustom(ctx context.Context, root, id, name, command, ext string) (Snapshot, error) {
+// AddCustom registers a language the built-in list does not know. command may be
+// a bare name resolved on PATH or an absolute path; ext lets it host scripts
+// ("ts" → toolbox_save_script writes name.ts and runs `<command> name.ts`);
+// version is optional because discovery no longer executes anything.
+func AddCustom(ctx context.Context, root, id, name, command, ext, version string, exact bool) (Snapshot, error) {
 	id = strings.TrimSpace(strings.ToLower(id))
 	command = strings.TrimSpace(command)
 	ext = strings.TrimPrefix(strings.TrimSpace(strings.ToLower(ext)), ".")
-	if id == "" || !regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,31}$`).MatchString(id) {
+	if !idPattern.MatchString(id) {
 		return Snapshot{}, fmt.Errorf("语言 id 只能用字母、数字、点、横线（例如 rust）")
 	}
 	if command == "" {
@@ -198,29 +320,34 @@ func AddCustom(ctx context.Context, root, id, name, command, ext string) (Snapsh
 		return Snapshot{}, err
 	}
 	if snapshot == nil {
-		// No cache yet: probe the builtins so the custom row lands in a real list.
-		fresh, refreshErr := Refresh(ctx, root)
+		fresh, refreshErr := Refresh(ctx, root, exact)
 		if refreshErr != nil {
 			return Snapshot{}, refreshErr
 		}
 		snapshot = &fresh
 	}
-	entry := Entry{ID: id, Name: firstNonEmpty(name, id), Kind: "custom", Command: command, Source: "custom", Found: false, Ext: ext}
-	if path, lookErr := exec.LookPath(command); lookErr == nil {
+
+	entry := Entry{ID: id, Name: firstNonEmpty(name, id), Kind: "custom", Command: command, Source: "custom", Ext: ext, Version: strings.TrimSpace(version)}
+	switch {
+	case isFile(command):
+		entry.Path = command
+		entry.Found = true
+	case func() bool { path, err := exec.LookPath(command); return err == nil && isFile(path) }():
+		path, _ := exec.LookPath(command)
 		entry.Path = path
 		entry.Command = path
 		entry.Found = true
-		entry.Version, entry.Raw = probeVersion(ctx, path, []string{"--version"})
-		if entry.Version == "" {
-			entry.Version, entry.Raw = probeVersion(ctx, path, []string{"-version"})
-		}
-	} else if info, statErr := os.Stat(command); statErr == nil && !info.IsDir() {
-		entry.Path = command
-		entry.Found = true
-		entry.Version, entry.Raw = probeVersion(ctx, command, []string{"--version"})
-	} else {
-		entry.Error = "找不到这个命令或文件"
+	default:
+		entry.Error = "环境变量里找不到这个命令或文件（只会查 PATH 和 *_HOME，不会真的执行）"
 	}
+	if entry.Found && entry.Version == "" {
+		entry.Version = versionFromPath(entry.Path)
+	}
+	if entry.Found && entry.Version == "" && exact {
+		entry.Version, entry.Raw = probeVersion(ctx, entry.Path, []string{"--version"})
+	}
+	entry.Notes = notes(entry)
+
 	replaced := false
 	for i := range snapshot.Entries {
 		if snapshot.Entries[i].ID == id {
@@ -326,29 +453,16 @@ func ExtensionFor(root, language string) string {
 	return ""
 }
 
-func probe(ctx context.Context, t target) (Entry, bool) {
-	for _, candidate := range t.commands {
-		path, err := exec.LookPath(candidate)
-		if err != nil {
-			continue
-		}
-		entry := Entry{
-			ID: t.id, Name: t.name, Kind: t.kind, Command: candidate,
-			Path: path, Source: "path", Found: true, Ext: t.ext,
-		}
-		entry.Version, entry.Raw = probeVersion(ctx, path, t.versionArgs)
-		entry.Notes = notes(entry)
-		return entry, true
-	}
-	return Entry{}, false
-}
-
-// probeVersion runs one version command and reduces it to a version token plus
-// the raw first line (PowerShell prints to stdout, java to stderr — both ok).
+// probeVersion runs one version command. Only exec mode calls this.
 func probeVersion(ctx context.Context, command string, args []string) (string, string) {
+	if command == "" {
+		return "", ""
+	}
 	runCtx, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
-	out, err := exec.CommandContext(runCtx, command, args...).CombinedOutput()
+	cmd := exec.CommandContext(runCtx, command, args...)
+	hideWindow(cmd)
+	out, _ := cmd.CombinedOutput()
 	text := strings.TrimSpace(string(out))
 	if text == "" {
 		return "", ""
@@ -361,24 +475,14 @@ func probeVersion(ctx context.Context, command string, args []string) (string, s
 	if len(line) > 120 {
 		line = line[:120]
 	}
-	if match := versionPattern.FindString(line); match != "" {
-		return match, line
-	}
-	if err != nil {
-		return "", line
-	}
-	return "", line
+	return versionPattern.FindString(line), line
 }
 
 // notes records the traps that make a model write the wrong dialect.
 func notes(entry Entry) string {
 	switch entry.ID {
 	case "powershell":
-		major := majorOf(entry.Version)
-		if major > 0 && major < 7 {
-			return "Windows PowerShell 5.1：不支持 ?: 三元、?? 空合并、&& / || 管道链、ForEach-Object -Parallel、写 `-Encoding utf8` 也会产出 BOM；脚本请按 5.1 语法写"
-		}
-		return "Windows PowerShell"
+		return "Windows PowerShell 5.1：不支持 ?: 三元、?? 空合并、&& / || 管道链、ForEach-Object -Parallel；脚本请按 5.1 语法写"
 	case "pwsh":
 		return "PowerShell 7：支持 5.1 语法以及 ?:、??、&& / ||"
 	case "python":
@@ -398,9 +502,7 @@ func notes(entry Entry) string {
 	return ""
 }
 
-func majorOf(version string) int {
-	return leadingInt(version)
-}
+func majorOf(version string) int { return leadingInt(version) }
 
 func minorOf(version string) int {
 	parts := strings.Split(version, ".")
@@ -411,8 +513,7 @@ func minorOf(version string) int {
 }
 
 func leadingInt(text string) int {
-	value := 0
-	seen := false
+	value, seen := 0, false
 	for _, r := range text {
 		if r < '0' || r > '9' {
 			break
@@ -426,6 +527,7 @@ func leadingInt(text string) int {
 	return value
 }
 
+// bundledPython finds the Python runtime DSH ships, rooted at DSH_HOME.
 func bundledPython() string {
 	home := os.Getenv("DSH_HOME")
 	if home == "" {
@@ -442,7 +544,7 @@ func bundledPython() string {
 	}
 	for _, entry := range entries {
 		candidate := filepath.Join(home, "dsh-runtimes", entry.Name(), "dependencies", "python", "python.exe")
-		if _, statErr := os.Stat(candidate); statErr == nil {
+		if isFile(candidate) {
 			return candidate
 		}
 	}
@@ -450,7 +552,8 @@ func bundledPython() string {
 }
 
 // customEntries re-reads the previous snapshot and keeps the user's own rows so
-// a refresh does not wipe them.
+// a refresh does not wipe them. Resolution is environment-only: PATH and file
+// stat, never execution.
 func customEntries(root string) []Entry {
 	snapshot, err := Load(root)
 	if err != nil || snapshot == nil {
@@ -461,22 +564,37 @@ func customEntries(root string) []Entry {
 		if entry.Source != "custom" {
 			continue
 		}
-		// The command may have moved: re-resolve rather than trusting the cache.
-		if path, lookErr := exec.LookPath(entry.Command); lookErr == nil {
-			entry.Path = path
-			entry.Command = path
+		switch {
+		case isFile(entry.Command):
+			entry.Path = entry.Command
 			entry.Found = true
 			entry.Error = ""
-		} else if _, statErr := os.Stat(entry.Command); statErr == nil {
-			entry.Found = true
-			entry.Error = ""
-		} else {
+		case func() bool { path, err := exec.LookPath(entry.Command); return err == nil && isFile(path) }():
+			path, _ := exec.LookPath(entry.Command)
+			entry.Path, entry.Found, entry.Error = path, true, ""
+		default:
 			entry.Found = false
-			entry.Error = "找不到这个命令或文件"
+			entry.Error = "环境变量里找不到这个命令或文件（只会查 PATH 和 *_HOME，不会真的执行）"
 		}
 		out = append(out, entry)
 	}
 	return out
+}
+
+func isFile(path string) bool {
+	if path == "" {
+		return false
+	}
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
+}
+
+// exeName adds .exe on Windows when the catalog name omits it.
+func exeName(name string) string {
+	if runtime.GOOS == "windows" && !strings.HasSuffix(strings.ToLower(name), ".exe") {
+		return name + ".exe"
+	}
+	return name
 }
 
 func hasID(entries []Entry, id string) bool {

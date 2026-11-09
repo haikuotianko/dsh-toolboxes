@@ -204,7 +204,8 @@ func (s *Service) SaveScript(spec install.ScriptSpec) (SaveScriptOutput, error) 
 // ---- MCP tool inputs ----
 
 type runtimesInput struct {
-	Refresh bool `json:"refresh,omitempty" jsonschema:"re-probe instead of using the cached snapshot (use after installing a new language)"`
+	Refresh bool `json:"refresh,omitempty" jsonschema:"re-discover instead of using the cached snapshot"`
+	Exec    bool `json:"exec,omitempty" jsonschema:"also run one --version per runtime for exact versions (default false: environment variables only, no process started)"`
 }
 
 type listInput struct{}
@@ -298,7 +299,7 @@ func (s *Service) NewServer() *mcp.Server {
 		Name:        "toolbox_runtimes",
 		Description: "List the interpreters and compilers this machine can actually execute, with the exact version found (python 3.12 / node 24 / powershell 5.1 / pwsh 7 / go / rustc …). Call this BEFORE writing any script: the version decides the dialect. `notes` on each entry records the traps (e.g. Windows PowerShell 5.1 has no ?:, ?? or && / ||, Python 3.8 has no match statement). Results are cached on disk; pass refresh=true after installing something new. Only languages with an `ext` can host an archived script via toolbox_save_script.",
 	}, func(ctx context.Context, req *mcp.CallToolRequest, in runtimesInput) (*mcp.CallToolResult, RuntimesOutput, error) {
-		out, err := s.Runtimes(ctx, in.Refresh)
+		out, err := s.Runtimes(ctx, in.Refresh, in.Exec)
 		return nil, out, err
 	})
 

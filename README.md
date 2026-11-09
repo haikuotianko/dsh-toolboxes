@@ -88,7 +88,9 @@ go          1.25.0    compiler
 ```
 
 - 探测结果缓存在 `<root>/runtimes.json`（12 小时有效），换窗口、换进程都不用重测；管理页点「重新检测」或 MCP 传 `refresh: true` 立即重测。
-- 每个条目带 `notes`，把最容易踩的差异写清楚（5.1 没有三元/空合并/管道链、`-Encoding utf8` 会写 BOM；Python 3.8 以下没有 `match`；Node 18 以下没有内置 `fetch`）。
+- **默认只读环境变量**：扫描 `PATH` 与 `JAVA_HOME` / `GOROOT` / `CARGO_HOME` / `DENO_INSTALL` / `BUN_INSTALL` / `DOTNET_ROOT` / `DSH_HOME` 这些变量指向的目录，**不启动任何进程**（实测 180ms，无副作用、不会闪黑窗）。版本取自环境变量或安装路径里的三段式版本号（`…\node-versions\v24.21.0\…`）；读不到的留空，绝不瞎猜（`WindowsPowerShell\v1.0` 这种目录不会被当成 1.0）。
+- 需要准确版本时点「精确版本」（MCP 传 `exec: true`），才会每个语言跑一次 `--version`（Windows 下隐藏窗口）；结果里 `mode` 会写成 `exec`，普通探测是 `env`。
+- 每个条目带 `notes`，把最容易踩的差异写清楚（5.1 没有三元/空合并/管道链、Python 3.8 以下没有 `match`、Node 18 以下没有内置 `fetch`）。
 - `toolbox_save_script` 按语言取这里记录的**真实解释器路径**，归档的脚本和 `toolbox_run` 用的是同一套环境。
 - 内置覆盖 python / node / deno / bun / ruby / php / pwsh / powershell / go / rustc / cargo / dotnet / java / gcc / clang；其他语言在页面「脚本 → 语言…」里填 **id + 命令名或绝对路径 + 可选脚本扩展名**即可加入，AI 之后也能看到并选择。
   - 命令填 `rust` 这种裸命令名时按 PATH 解析，也可以填 `D:\rust\bin\rustc.exe`；没装也会先存下来并标成「未找到」。

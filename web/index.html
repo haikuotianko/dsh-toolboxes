@@ -117,6 +117,7 @@
     <div class="body" id="runtimes" hidden>
       <div class="card"><div class="head" style="cursor:default">
         <button id="btn-runtimes-refresh">重新检测</button>
+        <button id="btn-runtimes-exec" title="每个语言跑一次 --version，拿准确版本">精确版本</button>
         <span class="muted" id="runtimes-meta">结果缓存在 runtimes.json，12 小时内复用；装了新语言点「重新检测」</span>
       </div></div>
       <div id="runtime-list"></div>
@@ -125,6 +126,7 @@
         <input id="rt-name" placeholder="名称（可空）" style="width:110px">
         <input id="rt-cmd" placeholder="命令名或路径，如 rust" class="desc" style="background:var(--panel)">
         <input id="rt-ext" placeholder="扩展名，如 ts" style="width:96px" title="填了就能用它归档脚本：执行方式是「命令 + 脚本路径」">
+        <input id="rt-version" placeholder="版本（可空）" style="width:110px" title="环境变量里读不到版本时手填">
         <button id="btn-rt-add">添加语言</button>
       </div></div>
     </div>
@@ -466,10 +468,13 @@ async function loadRuns() {
 }
 
 // ---- 语言版本：探测结果缓存在 runtimes.json ----
-async function loadRuntimes(refresh) {
-  if (refresh) $('runtimes-meta').textContent = '检测中…（每个语言跑一次 --version）';
+async function loadRuntimes(refresh, exec) {
+  if (refresh) $('runtimes-meta').textContent = exec ? '检测中…（跑一次 --version）' : '检测中…（只读环境变量）';
   try {
-    renderRuntimes(await api('/runtimes' + (refresh ? '?refresh=1' : '')));
+    const query = [];
+    if (refresh) query.push('refresh=1');
+    if (exec) query.push('exec=1');
+    renderRuntimes(await api('/runtimes' + (query.length ? '?' + query.join('&') : '')));
   } catch (e) { show(e.message, true); }
 }
 
@@ -479,28 +484,30 @@ function renderRuntimes(data) {
   $('h-runtimes').textContent = '语言版本 · ' + list.length;
   $('runtimes-summ').textContent = chips.join(' · ') || '还没有语言记录';
   $('runtimes-meta').textContent = '检测于 ' + (data.checkedAt ? new Date(data.checkedAt).toLocaleString() : '—') +
-    ' · 结果缓存在 runtimes.json，12 小时内复用；装了新语言点「重新检测」';
+    ' · ' + (data.mode === 'exec' ? '精确模式（跑过 --version）' : '环境变量模式（只读 PATH / *_HOME，不启动进程）') +
+    ' · 结果缓存在 runtimes.json，12 小时复用';
   const host = $('runtime-list'); host.innerHTML = '';
   for (const x of list) {
     const { box, detail } = card(x.id, x.version || (x.found ? '未识别' : '未找到'), x.path || x.command, [
       x.ext ? el('span', { class: 'muted', style: 'font-size:11.5px' }, '.' + x.ext)
         : el('span', { class: 'muted', style: 'font-size:11.5px' }, '编译型'),
-      x.source === 'custom' ? el('button', { onclick: async () => { try { await post('/runtimes/remove', { id: x.id }); loadRuntimes(false); } catch (e) { show(e.message, true); } } }, '移除') : null,
+      x.source === 'custom' ? el('button', { onclick: async () => { try { await post('/runtimes/remove', { id: x.id }); loadRuntimes(false, false); } catch (e) { show(e.message, true); } } }, '移除') : null,
     ]);
     if (x.notes) detail.append(el('div', { class: 'row' }, el('span', { class: 'muted' }, '注意'), el('span', { class: 'url' }, x.notes)));
     host.append(box);
   }
 }
 
-$('btn-runtimes-refresh').onclick = () => loadRuntimes(true);
+$('btn-runtimes-refresh').onclick = () => loadRuntimes(true, false);
+$('btn-runtimes-exec').onclick = () => loadRuntimes(true, true);
 $('btn-rt-add').onclick = async () => {
   const id = $('rt-id').value.trim();
   const command = $('rt-cmd').value.trim();
   if (!id || !command) { show('id 和命令都要填（命令名或绝对路径都可以）', true); return; }
   try {
-    await post('/runtimes', { id, name: $('rt-name').value.trim(), command, ext: $('rt-ext').value.trim() });
-    $('rt-id').value = ''; $('rt-name').value = ''; $('rt-cmd').value = ''; $('rt-ext').value = '';
-    loadRuntimes(false);
+    await post('/runtimes', { id, name: $('rt-name').value.trim(), command, ext: $('rt-ext').value.trim(), version: $('rt-version').value.trim() });
+    $('rt-id').value = ''; $('rt-name').value = ''; $('rt-cmd').value = ''; $('rt-ext').value = ''; $('rt-version').value = '';
+    loadRuntimes(false, false);
   } catch (e) { show(e.message, true); }
 };
 
@@ -525,7 +532,7 @@ $('btn-copy-mcp').onclick = async () => {
 applyOpen();
 load();
 loadRuns();
-loadRuntimes(false);
+loadRuntimes(false, false);
 loadLauncher();
 </script>
 </body>

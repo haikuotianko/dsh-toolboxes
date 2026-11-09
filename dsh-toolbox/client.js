@@ -188,19 +188,23 @@ window.__ModuleLoader__.load({
       const [langName, setLangName] = React.useState('');
       const [langCmd, setLangCmd] = React.useState('');
       const [langExt, setLangExt] = React.useState('');
+      const [langVersion, setLangVersion] = React.useState('');
 
       const load = React.useCallback(() => { request('/scripts').then((v) => setList(v.scripts || []), (e) => setErr(String(e.message || e))); }, []);
       React.useEffect(() => { load(); }, [load]);
 
       // The language inventory is cached on disk (the agent reads the same file),
       // so this is usually a quick read; refresh re-probes after an install.
-      const loadEnv = React.useCallback((refresh) => {
+      const loadEnv = React.useCallback((refresh, exec) => {
         setEnvBusy(true);
-        request('/runtimes' + (refresh ? '?refresh=1' : ''))
+        const query = [];
+        if (refresh) query.push('refresh=1');
+        if (exec) query.push('exec=1');
+        request('/runtimes' + (query.length ? '?' + query.join('&') : ''))
           .then((v) => setEnv(v), (e) => setErr(String(e.message || e)))
           .then(() => setEnvBusy(false), () => setEnvBusy(false));
       }, []);
-      React.useEffect(() => { loadEnv(false); }, [loadEnv]);
+      React.useEffect(() => { loadEnv(false, false); }, [loadEnv]);
 
       const blank = { name: '', title: '', description: '', usage: '', language: 'python', content: '' };
       const openRun = (s) => {
@@ -222,8 +226,8 @@ window.__ModuleLoader__.load({
         h('textarea', { value: draft[key] || '', rows: rows, onChange: (e) => setDraft(Object.assign({}, draft, { [key]: e.target.value })), style: Object.assign(input(), { width: '100%', boxSizing: 'border-box', resize: 'vertical' }) }));
 
       const addLang = () => {
-        post('/runtimes', { id: langID.trim(), name: langName.trim(), command: langCmd.trim(), ext: langExt.trim() })
-          .then(() => { setLangID(''); setLangName(''); setLangCmd(''); setLangExt(''); loadEnv(false); },
+        post('/runtimes', { id: langID.trim(), name: langName.trim(), command: langCmd.trim(), ext: langExt.trim(), version: langVersion.trim() })
+          .then(() => { setLangID(''); setLangName(''); setLangCmd(''); setLangExt(''); setLangVersion(''); loadEnv(false, false); },
             (e) => setErr(String(e.message || e)));
       };
       const removeLang = (id) => {
@@ -246,7 +250,7 @@ window.__ModuleLoader__.load({
       const envPanel = envOpen ? h(Box, { style: { marginTop: 8 } },
         h('div', { style: { fontSize: 11.5, color: C.subtle, marginBottom: 6 } },
           '检测于 ' + (env && env.checkedAt ? new Date(env.checkedAt).toLocaleString() : '—') +
-          ' · 结果写在工具箱目录的 runtimes.json，12 小时内直接复用；装了新语言点「重新检测」'),
+          ' · ' + (env && env.mode === 'exec' ? '精确模式（跑过一次 --version）' : '环境变量模式（只读 PATH / *_HOME，不启动进程，版本可能为空）') + ' · 结果写在 runtimes.json，12 小时复用'),
         languages.map((x) => h('div', { key: x.id + x.command, style: { display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', borderBottom: '1px solid ' + C.border, fontSize: 11.5 } },
           h('code', { style: { fontWeight: 600, minWidth: 88 } }, x.id),
           h('span', { style: { minWidth: 88, color: x.found ? C.text : C.error } }, x.version || (x.found ? '未识别' : '未找到')),
@@ -256,8 +260,9 @@ window.__ModuleLoader__.load({
         h('div', { style: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' } },
           h('input', { placeholder: 'id，如 rust', value: langID, onChange: (e) => setLangID(e.target.value), style: Object.assign(input(), { width: 100 }) }),
           h('input', { placeholder: '名称（可空）', value: langName, onChange: (e) => setLangName(e.target.value), style: Object.assign(input(), { width: 110 }) }),
-          h('input', { title: '命令名或绝对路径都可以', placeholder: '命令名或路径，如 rust', value: langCmd, onChange: (e) => setLangCmd(e.target.value), style: Object.assign(input(), { flex: 1, minWidth: 170 }) }),
+          h('input', { title: '命令名或绝对路径都可以；只查 PATH 和 *_HOME，不会执行', placeholder: '命令名或路径，如 rust', value: langCmd, onChange: (e) => setLangCmd(e.target.value), style: Object.assign(input(), { flex: 1, minWidth: 170 }) }),
           h('input', { title: '填了就能用它归档脚本，执行方式是「命令 + 脚本路径」', placeholder: '扩展名，如 ts', value: langExt, onChange: (e) => setLangExt(e.target.value), style: Object.assign(input(), { width: 96 }) }),
+          h('input', { title: '环境变量里读不到版本时，可以手填', placeholder: '版本（可空）', value: langVersion, onChange: (e) => setLangVersion(e.target.value), style: Object.assign(input(), { width: 110 }) }),
           h(Btn, { disabled: !langID.trim() || !langCmd.trim(), onClick: addLang }, '添加语言'))) : null;
 
       return h('div', { style: { marginTop: 24 } },
@@ -271,7 +276,8 @@ window.__ModuleLoader__.load({
           scriptable.length ? scriptable.map(chip)
             : h('span', { style: { fontSize: 11.5, color: C.subtle } }, envBusy ? '正在检测本机语言…' : '还没有语言记录，点「重新检测」'),
           h('div', { style: { marginLeft: 'auto', display: 'flex', gap: 6 } },
-            h(Btn, { onClick: () => loadEnv(true), disabled: envBusy }, envBusy ? '检测中…' : '重新检测'),
+            h(Btn, { onClick: () => loadEnv(true, false), disabled: envBusy }, envBusy ? '检测中…' : '重新检测'),
+            h(Btn, { onClick: () => loadEnv(true, true), disabled: envBusy, title: '每个语言跑一次 --version，拿准确版本' }, '精确版本'),
             h(Btn, { onClick: () => setEnvOpen(!envOpen) }, envOpen ? '收起语言' : '语言…'))),
         envPanel,
         err ? h('div', { style: { color: C.error, fontSize: 11.5, marginTop: 6 } }, err) : null,

@@ -41,7 +41,7 @@ func TestGetReusesFreshCache(t *testing.T) {
 	if err := Save(root, snapshot); err != nil {
 		t.Fatal(err)
 	}
-	got, cached, err := Get(context.Background(), root, time.Hour, false)
+	got, cached, err := Get(context.Background(), root, time.Hour, false, false)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -59,7 +59,7 @@ func TestGetReprobesWhenStale(t *testing.T) {
 	if err := Save(root, stale); err != nil {
 		t.Fatal(err)
 	}
-	got, cached, err := Get(context.Background(), root, time.Hour, false)
+	got, cached, err := Get(context.Background(), root, time.Hour, false, false)
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestCustomEntrySurvivesRefresh(t *testing.T) {
 	if err != nil {
 		t.Skip("no executable path")
 	}
-	snapshot, err := AddCustom(context.Background(), root, "probe-binary", "Test Binary", self, "txt")
+	snapshot, err := AddCustom(context.Background(), root, "probe-binary", "Test Binary", self, "txt", "", false)
 	if err != nil {
 		t.Fatalf("add custom: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestCustomEntrySurvivesRefresh(t *testing.T) {
 		t.Fatalf("custom entry missing after add: %+v", snapshot.Entries)
 	}
 
-	refreshed, err := Refresh(context.Background(), root)
+	refreshed, err := Refresh(context.Background(), root, false)
 	if err != nil {
 		t.Fatalf("refresh: %v", err)
 	}
@@ -120,10 +120,10 @@ func TestCustomEntrySurvivesRefresh(t *testing.T) {
 
 func TestAddCustomValidatesInput(t *testing.T) {
 	root := t.TempDir()
-	if _, err := AddCustom(context.Background(), root, "bad id!", "x", "x", ""); err == nil {
+	if _, err := AddCustom(context.Background(), root, "bad id!", "x", "x", "", "", false); err == nil {
 		t.Fatal("invalid id accepted")
 	}
-	if _, err := AddCustom(context.Background(), root, "rust", "Rust", "   ", ""); err == nil {
+	if _, err := AddCustom(context.Background(), root, "rust", "Rust", "   ", "", "", false); err == nil {
 		t.Fatal("empty command accepted")
 	}
 }
