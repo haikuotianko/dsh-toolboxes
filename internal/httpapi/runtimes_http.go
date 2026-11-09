@@ -28,12 +28,13 @@ func (s *Server) handleRuntimes(w http.ResponseWriter, r *http.Request) {
 			ID      string `json:"id"`
 			Name    string `json:"name"`
 			Command string `json:"command"`
+			Ext     string `json:"ext"`
 		}
 		if err := json.NewDecoder(io.LimitReader(r.Body, 1<<16)).Decode(&body); err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid-json: " + err.Error()})
 			return
 		}
-		snapshot, err := s.svc.AddRuntime(r.Context(), body.ID, body.Name, body.Command)
+		snapshot, err := s.svc.AddRuntime(r.Context(), body.ID, body.Name, body.Command, body.Ext)
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": err.Error()})
 			return

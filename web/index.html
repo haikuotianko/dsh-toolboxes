@@ -50,6 +50,11 @@
   <div id="msg" class="muted"></div>
   <div id="job"></div>
 
+  <div class="sec" id="sec-runs">
+    <h2 data-toggle><span class="caret">▸</span> <span id="h-runs">命令运行</span> <span class="summ" id="runs-summ"></span></h2>
+    <div class="body" id="runs" hidden></div>
+  </div>
+
   <div class="sec" id="sec-env">
     <h2 data-toggle><span class="caret">▸</span> 本机环境 <span class="summ" id="env-summ">PATH 里已有哪些预设工具</span></h2>
     <div class="body" id="env-body" hidden></div>
@@ -69,6 +74,24 @@
     <h2 data-toggle><span class="caret">▸</span> <span id="h-scripts">脚本</span> <span class="summ" id="scripts-summ"></span></h2>
     <div class="body" id="scripts" hidden>
       <div class="card"><div class="head"><button id="btn-new-script">+ 新建脚本</button><span class="muted">运行时按 usage 预填参数</span></div></div>
+    </div>
+  </div>
+
+  <div class="sec" id="sec-runtimes">
+    <h2 data-toggle><span class="caret">▸</span> <span id="h-runtimes">语言版本</span> <span class="summ" id="runtimes-summ"></span></h2>
+    <div class="body" id="runtimes" hidden>
+      <div class="card"><div class="head" style="cursor:default">
+        <button id="btn-runtimes-refresh">重新检测</button>
+        <span class="muted" id="runtimes-meta">结果缓存在 runtimes.json，12 小时内复用；装了新语言点「重新检测」</span>
+      </div></div>
+      <div id="runtime-list"></div>
+      <div class="card"><div class="head" style="cursor:default;flex-wrap:wrap">
+        <input id="rt-id" placeholder="id，如 rust" style="width:100px">
+        <input id="rt-name" placeholder="名称（可空）" style="width:110px">
+        <input id="rt-cmd" placeholder="命令名或路径，如 rust" class="desc" style="background:var(--panel)">
+        <input id="rt-ext" placeholder="扩展名，如 ts" style="width:96px" title="填了就能用它归档脚本：执行方式是「命令 + 脚本路径」">
+        <button id="btn-rt-add">添加语言</button>
+      </div></div>
     </div>
   </div>
 
@@ -97,7 +120,7 @@ const $ = (id) => document.getElementById(id);
 const kb = (n) => Math.round((n || 0) / 1024) + ' KB';
 const rate = (n) => (n > 0 ? Math.round(n / 1024) + ' KB/s' : '-');
 let job = null;
-const open = { env: false, installed: true, available: false, scripts: false };
+const open = { runs: true, env: false, installed: true, available: false, scripts: false, runtimes: false };
 
 async function api(path, init) {
   const res = await fetch(API + path, init);
@@ -272,16 +295,23 @@ async function loadScripts() {
       const { box, detail } = card(s.id, s.id, s.description || '', [
         el('span', { class: 'muted', style: 'font-size:11.5px' }, s.language),
         el('button', {
-          onclick: async () => {
+          onclick: () => {
             let args = '[]';
             const m = /"args"\s*:\s*(\[[^]*?\])/.exec(s.usage || '');
             if (m) { try { args = JSON.stringify(JSON.parse(m[1])); } catch (e) { args = m[1]; } }
             const text = prompt(s.id + ' 的参数（JSON 数组）', args);
             if (text === null) return;
-            try {
-              const r = await post('/run', { tool: s.id, args: JSON.parse(text) });
-              alert('exit=' + r.exitCode + '\n\n' + r.stdout + (r.stderr ? '\n' + r.stderr : ''));
-            } catch (e) { alert(e.message); }
+            let parsed;
+            try { parsed = JSON.parse(text || '[]'); } catch (e) { show('参数不是合法 JSON 数组', true); return; }
+            if (!Array.isArray(parsed)) { show('参数必须是 JSON 数组', true); return; }
+            // The run is recorded by the server, so the 命令运行 panel shows the
+            // live console; no need to block the page with a modal.
+            open.runs = true;
+            applyOpen();
+            loadRuns();
+            post('/run', { tool: s.id, args: parsed }).then(
+              (r) => show(s.id + ' 完成，exit=' + r.exitCode),
+              (e) => show(s.id + ' 失败：' + e.message, true));
           },
         }, '运行'),
         el('button', { onclick: async () => { if (!confirm('删除 ' + s.id + '?')) return; await api('/script', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ tool: s.id }) }); loadScripts(); } }, '删除'),
@@ -327,7 +357,7 @@ $('btn-new-script').onclick = async () => {
 };
 
 
-const HINT_TEXT = "我在用工具箱 MCP（工具：toolbox_list / toolbox_run / toolbox_runtimes / toolbox_save_script / toolbox_install）。\n请把下面这些规则写进项目根目录的 AGENTS.md：文件不存在就新建，已存在就追加到末尾（不要覆盖原有内容）。写完后告诉我你改了哪个文件。\n\n## 动手前先看工具箱\n- 需要跑命令或写脚本时，先调用 toolbox_list；能覆盖的通用活优先 toolbox_run，没装先问我要不要装（别一上来就写脚本）。\n- 写脚本前先调用 toolbox_runtimes 确认本机有哪些语言：密集计算/大文件用 Go 或 Rust，文本与数据加工用 Python，Windows 系统操作用 PowerShell 5.1，JSON/HTTP 可用 Node。\n- 脚本写完后如果它通用（输入输出清晰、无项目私有路径或常量），用 toolbox_save_script 存进工具箱，并告诉我 id 与调用方式；一次性的不要存。\n- 工具已经给出结果时不要用另一套实现再复核一遍；只有结果可疑才抽查。\n";
+const HINT_TEXT = "我在用工具箱 MCP（工具：toolbox_list / toolbox_run / toolbox_runtimes / toolbox_save_script / toolbox_install）。\n请把下面这些规则写进项目根目录的 AGENTS.md：文件不存在就新建，已存在就追加到末尾（不要覆盖原有内容）。写完后告诉我你改了哪个文件。\n\n## 动手前先看工具箱\n- 需要跑命令或写脚本时，先调用 toolbox_list；能覆盖的通用活优先 toolbox_run，没装先问我要不要装（别一上来就写脚本）。\n- 写脚本前先调用 toolbox_runtimes 确认本机有哪些语言和**版本**，按返回的版本写语法（例如 PowerShell 5.1 没有 ?: / ?? / &&）；密集计算/大文件用 Go 或 Rust，文本与数据加工用 Python，Windows 系统操作用 PowerShell，JSON/HTTP 可用 Node。\n- 脚本写完后如果它通用（输入输出清晰、无项目私有路径或常量），用 toolbox_save_script 存进工具箱，并告诉我 id 与调用方式；一次性的不要存。\n- 工具已经给出结果时不要用另一套实现再复核一遍；只有结果可疑才抽查。\n";
 $('agents-hint').value = HINT_TEXT;
 $('btn-copy').onclick = async () => {
   try { await navigator.clipboard.writeText(HINT_TEXT); $('copy-state').textContent = '已复制'; }
@@ -337,8 +367,120 @@ $('btn-copy').onclick = async () => {
   }
   setTimeout(() => { $('copy-state').textContent = ''; }, 2500);
 };
+// ---- 命令运行：跨进程的运行记录 + 实时控制台 ----
+const runNodes = new Map();
+let runsTimer = null;
+const PHASE = { running: '运行中', done: '完成', failed: '失败', timeout: '超时', cancelled: '已取消', lost: '中断' };
+
+// Same terminal semantics as the plugin page: \r rewrites the current line, so
+// yt-dlp / curl / ffmpeg progress stays on one line instead of flooding.
+function consoleLines(raw) {
+  const lines = []; let line = ''; let rewrite = false;
+  for (const ch of String(raw || '')) {
+    if (ch === '\r') { rewrite = true; continue; }
+    if (ch === '\n') { lines.push(line); line = ''; rewrite = false; if (lines.length > 500) lines.shift(); continue; }
+    if (rewrite) { line = ''; rewrite = false; }
+    line += ch;
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+function makeRunCard(run) {
+  const box = el('div', { class: 'card' });
+  const state = el('span', { class: 'muted', style: 'font-size:11.5px' }, '');
+  const cancel = el('button', { onclick: async () => { try { await post('/runs/cancel', { id: run.id }); } catch (e) { show(e.message, true); } } }, '取消');
+  const head = el('div', { class: 'head' }, el('span', { class: 'title' }, run.tool), el('span', { class: 'desc' }, (run.args || []).join(' ')), state, cancel);
+  const pre = el('pre', { style: 'display:none;margin:0 12px 10px' });
+  pre.addEventListener('scroll', () => { box._stick = pre.scrollHeight - pre.scrollTop - pre.clientHeight < 24; });
+  box._stick = true;
+  box.append(head, pre);
+  return { box, state, cancel, pre };
+}
+
+async function updateRunCard(node, run) {
+  const live = run.phase === 'running';
+  node.state.textContent = (PHASE[run.phase] || run.phase) + ' · ' + Math.round((run.elapsedMs || 0) / 1000) + 's';
+  node.state.style.color = live ? 'var(--brand)' : (run.phase === 'done' && !run.exitCode ? 'var(--sub)' : 'var(--err)');
+  node.cancel.style.display = live ? '' : 'none';
+  try {
+    const log = await api('/runlog?id=' + encodeURIComponent(run.id) + '&tail=24000');
+    const text = consoleLines(log.output || '').slice(-400).join('\n') || (live ? '等待输出…' : '（没有输出）');
+    if (node.pre.textContent !== text) {
+      node.pre.textContent = text;
+      node.pre.style.display = '';
+      if (node.box._stick) node.pre.scrollTop = node.pre.scrollHeight;
+    }
+  } catch (e) { /* keep whatever was shown */ }
+}
+
+async function loadRuns() {
+  if (runsTimer) { clearTimeout(runsTimer); runsTimer = null; }
+  try {
+    const data = await api('/runs');
+    const list = data.runs || [];
+    const live = list.filter((r) => r.phase === 'running');
+    $('h-runs').textContent = '命令运行' + (live.length ? ' · ' + live.length + ' 运行中' : '');
+    $('runs-summ').textContent = live.length ? live.map((r) => r.tool).join(', ')
+      : (list.length ? '最近 ' + Math.min(list.length, 4) + ' 条（含已结束）' : '没有正在运行的命令');
+    const shown = live.concat(list.filter((r) => r.phase !== 'running').slice(0, 4));
+    const keep = new Set(shown.map((r) => r.id));
+    for (const [id, node] of runNodes) { if (!keep.has(id)) { node.box.remove(); runNodes.delete(id); } }
+    const host = $('runs');
+    for (const run of shown) {
+      let node = runNodes.get(run.id);
+      if (!node) { node = makeRunCard(run); runNodes.set(run.id, node); host.append(node.box); }
+      updateRunCard(node, run);
+    }
+    runsTimer = setTimeout(loadRuns, live.length ? 800 : 3000);
+  } catch (e) {
+    runsTimer = setTimeout(loadRuns, 5000);
+  }
+}
+
+// ---- 语言版本：探测结果缓存在 runtimes.json ----
+async function loadRuntimes(refresh) {
+  if (refresh) $('runtimes-meta').textContent = '检测中…（每个语言跑一次 --version）';
+  try {
+    renderRuntimes(await api('/runtimes' + (refresh ? '?refresh=1' : '')));
+  } catch (e) { show(e.message, true); }
+}
+
+function renderRuntimes(data) {
+  const list = data.runtimes || [];
+  const chips = list.filter((x) => x.ext).map((x) => x.id + ' ' + (x.version || '?'));
+  $('h-runtimes').textContent = '语言版本 · ' + list.length;
+  $('runtimes-summ').textContent = chips.join(' · ') || '还没有语言记录';
+  $('runtimes-meta').textContent = '检测于 ' + (data.checkedAt ? new Date(data.checkedAt).toLocaleString() : '—') +
+    ' · 结果缓存在 runtimes.json，12 小时内复用；装了新语言点「重新检测」';
+  const host = $('runtime-list'); host.innerHTML = '';
+  for (const x of list) {
+    const { box, detail } = card(x.id, x.version || (x.found ? '未识别' : '未找到'), x.path || x.command, [
+      x.ext ? el('span', { class: 'muted', style: 'font-size:11.5px' }, '.' + x.ext)
+        : el('span', { class: 'muted', style: 'font-size:11.5px' }, '编译型'),
+      x.source === 'custom' ? el('button', { onclick: async () => { try { await post('/runtimes/remove', { id: x.id }); loadRuntimes(false); } catch (e) { show(e.message, true); } } }, '移除') : null,
+    ]);
+    if (x.notes) detail.append(el('div', { class: 'row' }, el('span', { class: 'muted' }, '注意'), el('span', { class: 'url' }, x.notes)));
+    host.append(box);
+  }
+}
+
+$('btn-runtimes-refresh').onclick = () => loadRuntimes(true);
+$('btn-rt-add').onclick = async () => {
+  const id = $('rt-id').value.trim();
+  const command = $('rt-cmd').value.trim();
+  if (!id || !command) { show('id 和命令都要填（命令名或绝对路径都可以）', true); return; }
+  try {
+    await post('/runtimes', { id, name: $('rt-name').value.trim(), command, ext: $('rt-ext').value.trim() });
+    $('rt-id').value = ''; $('rt-name').value = ''; $('rt-cmd').value = ''; $('rt-ext').value = '';
+    loadRuntimes(false);
+  } catch (e) { show(e.message, true); }
+};
+
 applyOpen();
 load();
+loadRuns();
+loadRuntimes(false);
 </script>
 </body>
 </html>

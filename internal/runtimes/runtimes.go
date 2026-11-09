@@ -178,10 +178,15 @@ func Save(root string, snapshot Snapshot) error {
 }
 
 // AddCustom registers a language the built-in probe list does not know (rust,
-// redshift, a portable python…). The command is probed once for its version.
-func AddCustom(ctx context.Context, root, id, name, command string) (Snapshot, error) {
+// a portable python, a wrapper command…). ext is the script extension it can
+// host ("ts" → toolbox_save_script writes name.ts and runs `<command> name.ts`);
+// leave it empty for a compiler that cannot run a single file.
+// The command may be a bare name resolved on PATH ("rust") or an absolute path.
+// A command that is not installed yet is still saved, marked found=false.
+func AddCustom(ctx context.Context, root, id, name, command, ext string) (Snapshot, error) {
 	id = strings.TrimSpace(strings.ToLower(id))
 	command = strings.TrimSpace(command)
+	ext = strings.TrimPrefix(strings.TrimSpace(strings.ToLower(ext)), ".")
 	if id == "" || !regexp.MustCompile(`^[a-z0-9][a-z0-9._-]{0,31}$`).MatchString(id) {
 		return Snapshot{}, fmt.Errorf("语言 id 只能用字母、数字、点、横线（例如 rust）")
 	}
@@ -200,7 +205,7 @@ func AddCustom(ctx context.Context, root, id, name, command string) (Snapshot, e
 		}
 		snapshot = &fresh
 	}
-	entry := Entry{ID: id, Name: firstNonEmpty(name, id), Kind: "custom", Command: command, Source: "custom", Found: false}
+	entry := Entry{ID: id, Name: firstNonEmpty(name, id), Kind: "custom", Command: command, Source: "custom", Found: false, Ext: ext}
 	if path, lookErr := exec.LookPath(command); lookErr == nil {
 		entry.Path = path
 		entry.Command = path
@@ -300,6 +305,22 @@ func InterpreterFor(root, language string) string {
 	case "node", "deno", "bun", "ruby", "php":
 		if path, err := exec.LookPath(language); err == nil {
 			return path
+		}
+	}
+	return ""
+}
+
+// ExtensionFor returns the script extension a runtime declared, so a saved
+// script can be written as name.<ext> and run as `<command> name.<ext>`.
+// Only rows that are found and declared an extension qualify.
+func ExtensionFor(root, language string) string {
+	snapshot, err := Load(root)
+	if err != nil || snapshot == nil {
+		return ""
+	}
+	for _, entry := range snapshot.Entries {
+		if entry.ID == language && entry.Found && entry.Ext != "" {
+			return strings.TrimPrefix(entry.Ext, ".")
 		}
 	}
 	return ""

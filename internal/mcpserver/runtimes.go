@@ -45,12 +45,13 @@ func (s *Service) RuntimesSnapshot() (runtimes.Snapshot, error) {
 }
 
 // AddRuntime registers a language the built-in probe list does not know.
-func (s *Service) AddRuntime(ctx context.Context, id, name, command string) (runtimes.Snapshot, error) {
-	snapshot, err := runtimes.AddCustom(ctx, s.root, id, name, command)
+// command may be a bare name ("rust") or a path; ext enables script archiving.
+func (s *Service) AddRuntime(ctx context.Context, id, name, command, ext string) (runtimes.Snapshot, error) {
+	snapshot, err := runtimes.AddCustom(ctx, s.root, id, name, command, ext)
 	if err != nil {
 		return runtimes.Snapshot{}, err
 	}
-	s.logf("runtime added: %s -> %s", id, command)
+	s.logf("runtime added: %s -> %s (ext %q)", id, command, ext)
 	return snapshot, nil
 }
 

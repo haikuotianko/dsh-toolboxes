@@ -187,6 +187,7 @@ window.__ModuleLoader__.load({
       const [langID, setLangID] = React.useState('');
       const [langName, setLangName] = React.useState('');
       const [langCmd, setLangCmd] = React.useState('');
+      const [langExt, setLangExt] = React.useState('');
 
       const load = React.useCallback(() => { request('/scripts').then((v) => setList(v.scripts || []), (e) => setErr(String(e.message || e))); }, []);
       React.useEffect(() => { load(); }, [load]);
@@ -221,8 +222,8 @@ window.__ModuleLoader__.load({
         h('textarea', { value: draft[key] || '', rows: rows, onChange: (e) => setDraft(Object.assign({}, draft, { [key]: e.target.value })), style: Object.assign(input(), { width: '100%', boxSizing: 'border-box', resize: 'vertical' }) }));
 
       const addLang = () => {
-        post('/runtimes', { id: langID.trim(), name: langName.trim(), command: langCmd.trim() })
-          .then(() => { setLangID(''); setLangName(''); setLangCmd(''); loadEnv(false); },
+        post('/runtimes', { id: langID.trim(), name: langName.trim(), command: langCmd.trim(), ext: langExt.trim() })
+          .then(() => { setLangID(''); setLangName(''); setLangCmd(''); setLangExt(''); loadEnv(false); },
             (e) => setErr(String(e.message || e)));
       };
       const removeLang = (id) => {
@@ -253,9 +254,10 @@ window.__ModuleLoader__.load({
           h('span', { style: { color: C.subtle, minWidth: 44 } }, x.ext ? '.' + x.ext : '编译型'),
           x.source === 'custom' ? h(Btn, { tone: 'danger', onClick: () => removeLang(x.id) }, '移除') : null)),
         h('div', { style: { display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' } },
-          h('input', { placeholder: 'id，如 rust', value: langID, onChange: (e) => setLangID(e.target.value), style: Object.assign(input(), { width: 110 }) }),
-          h('input', { placeholder: '名称（可空）', value: langName, onChange: (e) => setLangName(e.target.value), style: Object.assign(input(), { width: 120 }) }),
-          h('input', { placeholder: '命令或绝对路径，如 rustc', value: langCmd, onChange: (e) => setLangCmd(e.target.value), style: Object.assign(input(), { flex: 1, minWidth: 200 }) }),
+          h('input', { placeholder: 'id，如 rust', value: langID, onChange: (e) => setLangID(e.target.value), style: Object.assign(input(), { width: 100 }) }),
+          h('input', { placeholder: '名称（可空）', value: langName, onChange: (e) => setLangName(e.target.value), style: Object.assign(input(), { width: 110 }) }),
+          h('input', { title: '命令名或绝对路径都可以', placeholder: '命令名或路径，如 rust', value: langCmd, onChange: (e) => setLangCmd(e.target.value), style: Object.assign(input(), { flex: 1, minWidth: 170 }) }),
+          h('input', { title: '填了就能用它归档脚本，执行方式是「命令 + 脚本路径」', placeholder: '扩展名，如 ts', value: langExt, onChange: (e) => setLangExt(e.target.value), style: Object.assign(input(), { width: 96 }) }),
           h(Btn, { disabled: !langID.trim() || !langCmd.trim(), onClick: addLang }, '添加语言'))) : null;
 
       return h('div', { style: { marginTop: 24 } },
@@ -324,7 +326,7 @@ window.__ModuleLoader__.load({
         h('textarea', { ref: area, readOnly: true, value: text, style: { position: 'absolute', left: -9999, width: 1, height: 1, opacity: 0 } }));
     }
 
-    const HINT_TEXT = "我在用工具箱 MCP（工具：toolbox_list / toolbox_run / toolbox_runtimes / toolbox_save_script / toolbox_install）。\n请把下面这些规则写进项目根目录的 AGENTS.md：文件不存在就新建，已存在就追加到末尾（不要覆盖原有内容）。写完后告诉我你改了哪个文件。\n\n## 动手前先看工具箱\n- 需要跑命令或写脚本时，先调用 toolbox_list；能覆盖的通用活优先 toolbox_run，没装先问我要不要装（别一上来就写脚本）。\n- 写脚本前先调用 toolbox_runtimes 确认本机有哪些语言：密集计算/大文件用 Go 或 Rust，文本与数据加工用 Python，Windows 系统操作用 PowerShell 5.1，JSON/HTTP 可用 Node。\n- 脚本写完后如果它通用（输入输出清晰、无项目私有路径或常量），用 toolbox_save_script 存进工具箱，并告诉我 id 与调用方式；一次性的不要存。\n- 工具已经给出结果时不要用另一套实现再复核一遍；只有结果可疑才抽查。\n";
+    const HINT_TEXT = "我在用工具箱 MCP（工具：toolbox_list / toolbox_run / toolbox_runtimes / toolbox_save_script / toolbox_install）。\n请把下面这些规则写进项目根目录的 AGENTS.md：文件不存在就新建，已存在就追加到末尾（不要覆盖原有内容）。写完后告诉我你改了哪个文件。\n\n## 动手前先看工具箱\n- 需要跑命令或写脚本时，先调用 toolbox_list；能覆盖的通用活优先 toolbox_run，没装先问我要不要装（别一上来就写脚本）。\n- 写脚本前先调用 toolbox_runtimes 确认本机有哪些语言和**版本**，按返回的版本写语法（例如 PowerShell 5.1 没有 ?: / ?? / &&）；密集计算/大文件用 Go 或 Rust，文本与数据加工用 Python，Windows 系统操作用 PowerShell，JSON/HTTP 可用 Node。\n- 脚本写完后如果它通用（输入输出清晰、无项目私有路径或常量），用 toolbox_save_script 存进工具箱，并告诉我 id 与调用方式；一次性的不要存。\n- 工具已经给出结果时不要用另一套实现再复核一遍；只有结果可疑才抽查。\n";
 
     function HintSection() {
       const [open, setOpen] = React.useState(false);

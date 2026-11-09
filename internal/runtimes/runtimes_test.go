@@ -79,7 +79,7 @@ func TestCustomEntrySurvivesRefresh(t *testing.T) {
 	if err != nil {
 		t.Skip("no executable path")
 	}
-	snapshot, err := AddCustom(context.Background(), root, "probe-binary", "Test Binary", self)
+	snapshot, err := AddCustom(context.Background(), root, "probe-binary", "Test Binary", self, "txt")
 	if err != nil {
 		t.Fatalf("add custom: %v", err)
 	}
@@ -120,10 +120,10 @@ func TestCustomEntrySurvivesRefresh(t *testing.T) {
 
 func TestAddCustomValidatesInput(t *testing.T) {
 	root := t.TempDir()
-	if _, err := AddCustom(context.Background(), root, "bad id!", "x", "x"); err == nil {
+	if _, err := AddCustom(context.Background(), root, "bad id!", "x", "x", ""); err == nil {
 		t.Fatal("invalid id accepted")
 	}
-	if _, err := AddCustom(context.Background(), root, "rust", "Rust", "   "); err == nil {
+	if _, err := AddCustom(context.Background(), root, "rust", "Rust", "   ", ""); err == nil {
 		t.Fatal("empty command accepted")
 	}
 }

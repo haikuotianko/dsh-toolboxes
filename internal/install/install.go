@@ -143,12 +143,17 @@ func SaveScript(root string, spec ScriptSpec) (store.Manifest, error) {
 	language := strings.ToLower(strings.TrimSpace(spec.Language))
 	extension := scriptExtensions[language]
 	if extension == "" {
+		// A user-added runtime can host scripts too if it declared an extension
+		// (e.g. "rust" -> ts, "bun" -> ts); the interpreter comes from the same row.
+		extension = runtimes.ExtensionFor(root, language)
+	}
+	if extension == "" {
 		keys := make([]string, 0, len(scriptExtensions))
 		for key := range scriptExtensions {
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
-		return store.Manifest{}, fmt.Errorf("unsupported language %q (%s)", spec.Language, strings.Join(keys, " | "))
+		return store.Manifest{}, fmt.Errorf("unsupported language %q (%s；自定义语言请在页面填脚本扩展名)", spec.Language, strings.Join(keys, " | "))
 	}
 	interpreter := spec.Command
 	if interpreter == "" {

@@ -68,6 +68,8 @@ toolbox -ui                           # 只启动管理页并打开浏览器
 toolbox -ui
 ```
 
+独立页面和 DSH 插件页功能一致：工具管理、命令运行控制台、语言版本、脚本、本机环境检查。
+
 - **工具**：已安装工具、可安装清单、每个工具的多下载源与实时测速、启用/停用/卸载、导入本机已有程序。
 - **命令运行**：所有正在跑的命令（**包括 AI 通过 MCP 发起的**）都在这里，带工具、参数、耗时和**实时控制台**。`\r` 形式的进度行按终端语义原地刷新，所以 yt-dlp / curl / aria2 / ffmpeg 的百分比、速度、ETA 直接可读；「取消」会连子进程一起结束。
 - **脚本**：`toolbox_save_script` 归档的通用脚本，可以在页面填参数运行。
@@ -88,7 +90,9 @@ go          1.25.0    compiler
 - 探测结果缓存在 `<root>/runtimes.json`（12 小时有效），换窗口、换进程都不用重测；管理页点「重新检测」或 MCP 传 `refresh: true` 立即重测。
 - 每个条目带 `notes`，把最容易踩的差异写清楚（5.1 没有三元/空合并/管道链、`-Encoding utf8` 会写 BOM；Python 3.8 以下没有 `match`；Node 18 以下没有内置 `fetch`）。
 - `toolbox_save_script` 按语言取这里记录的**真实解释器路径**，归档的脚本和 `toolbox_run` 用的是同一套环境。
-- 内置覆盖 python / node / deno / bun / ruby / php / pwsh / powershell / go / rustc / cargo / dotnet / java / gcc / clang；其他语言在页面「脚本 → 语言…」里填 id + 命令路径即可加入，AI 之后也能看到并选择。
+- 内置覆盖 python / node / deno / bun / ruby / php / pwsh / powershell / go / rustc / cargo / dotnet / java / gcc / clang；其他语言在页面「脚本 → 语言…」里填 **id + 命令名或绝对路径 + 可选脚本扩展名**即可加入，AI 之后也能看到并选择。
+  - 命令填 `rust` 这种裸命令名时按 PATH 解析，也可以填 `D:\rust\bin\rustc.exe`；没装也会先存下来并标成「未找到」。
+  - 填了扩展名（比如 `ts`）就能用它归档脚本：`toolbox_save_script { language: "rust" }` 会写成 `名字.ts`，执行方式是 `<命令> 名字.ts`。
 
 ## 内置工具
 
