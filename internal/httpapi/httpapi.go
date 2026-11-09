@@ -50,6 +50,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/source", s.handleSaveSource)
 	mux.HandleFunc("/api/import", s.handleImport)
 	mux.HandleFunc("/api/env", s.handleEnv)
+	mux.HandleFunc("/api/launcher", s.handleLauncher)
 	s.registerRuntimeRoutes(mux)
 	mux.HandleFunc("/api/adopt", s.handleAdopt)
 	mux.HandleFunc("/api/enable", s.handleEnable)

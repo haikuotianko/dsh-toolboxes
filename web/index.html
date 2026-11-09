@@ -4,38 +4,51 @@
 <meta charset="utf-8">
 <title>工具箱</title>
 <style>
-  :root { color-scheme: dark light; --bg:#0f1216; --text:#e7e9ec; --sub:#8b95a1; --line:#252b33; --panel:#161b21; --brand:#4c8dff; --err:#ff6b6b; }
-  @media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --text:#14181d; --sub:#5d6672; --line:#dfe3e8; --panel:#eef1f4; --brand:#2563eb; --err:#c0392b; } }
-  * { box-sizing: border-box; }
-  body { margin:0; font:13px/1.55 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); }
-  header { display:flex; gap:10px; align-items:center; padding-block:14px; padding-inline:max(18px, calc((100% - 1040px) / 2)); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
-  h1 { font-size:16px; margin:0; }
+  /* 和 DSH 插件页共用一份设计语言：同样的分区头、卡片、按钮、徽标尺寸；
+     配色与官网（docs/）一致，跟随系统深浅色。 */
+  :root {
+    color-scheme: dark light;
+    --bg:#0b0e14; --text:#e6e9ef; --sub:#8b95a7; --line:#222a38;
+    --panel:#111621; --surface:#0e131c; --brand:#5b9dff; --err:#ff6b6b;
+    --radius:10px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root { --bg:#f6f7f9; --text:#14181d; --sub:#5d6672; --line:#dfe3e8; --panel:#eef1f4; --surface:#ffffff; --brand:#2563eb; --err:#c0392b; }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font:13px/1.55 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif; background:var(--bg); color:var(--text); }
+  header { display:flex; gap:12px; align-items:center; padding-block:14px; padding-inline:max(22px, calc((100% - 1040px) / 2)); border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:2; }
+  h1 { font-size:17px; font-weight:700; margin:0; letter-spacing:-.2px; }
   .muted { color:var(--sub); font-size:12px; }
-  .err { color:var(--err); }
-  button { font:inherit; padding:4px 10px; border-radius:7px; border:1px solid var(--line); background:transparent; color:inherit; cursor:pointer; }
+  .err { color:var(--err); font-size:11.5px; }
+  button { font:inherit; font-size:12.5px; padding:4px 10px; border-radius:7px; border:1px solid var(--line); background:transparent; color:inherit; cursor:pointer; }
   button:hover:not(:disabled) { background:var(--panel); }
   button:disabled { opacity:.45; cursor:default; }
-  main { max-width:1040px; margin:0 auto; padding:16px 18px 48px; }
-  .sec { margin-top:20px; }
-  .sec > h2 { display:flex; align-items:baseline; gap:8px; font-size:14px; margin:0; padding:7px 0; border-bottom:1px solid var(--line); cursor:pointer; user-select:none; }
-  .sec > h2 .caret { color:var(--sub); width:12px; display:inline-block; }
+  input { font:inherit; font-size:12.5px; padding:5px 9px; border-radius:7px; border:1px solid var(--line); background:var(--panel); color:inherit; outline:none; }
+  main { max-width:1040px; margin:0 auto; padding:16px 22px 48px; }
+
+  /* 分区头：和插件页 Section 一样的圆角条，收起时是面板底色 */
+  .sec { margin-top:16px; }
+  .sec > h2 { display:flex; align-items:baseline; gap:8px; margin:0; padding:6px 9px; border:1px solid var(--line); border-radius:7px; background:var(--panel); font-size:14px; font-weight:600; cursor:pointer; user-select:none; }
+  .sec > h2 .caret { color:var(--sub); width:10px; display:inline-block; }
   .sec > h2 .summ { color:var(--sub); font-size:11.5px; font-weight:400; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .sec > .body { margin-top:9px; }
-  .card { border:1px solid var(--line); border-radius:9px; margin-bottom:8px; background:var(--panel); }
-  .card.open { background:var(--bg); }
+  .sec > .body { margin-top:8px; }
+
+  /* 卡片：圆角 10、内边距 10/12，和插件页 Box 一致 */
+  .card { border:1px solid var(--line); border-radius:var(--radius); margin-bottom:8px; background:var(--bg); }
   .card:hover { border-color:var(--brand); }
-  .card > .head { display:flex; gap:10px; align-items:center; padding:8px 12px; cursor:pointer; }
+  .card > .head { display:flex; gap:10px; align-items:center; padding:10px 12px; cursor:pointer; }
   .card > .head .caret { color:var(--sub); width:10px; }
   .card > .head .title { font-family:ui-monospace,Consolas,monospace; font-weight:600; }
   .card > .head .desc { color:var(--sub); font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .card > .detail { display:none; padding:0 12px 10px; border-top:1px solid var(--line); margin-top:2px; }
+  .card > .detail { display:none; padding:0 12px 10px; }
   .card.open > .detail { display:block; }
-  .row { display:flex; gap:8px; align-items:center; margin-top:6px; font-size:11.5px; }
+  .card.open { background:var(--bg); }
+  .row { display:flex; gap:8px; align-items:center; margin-top:3px; font-size:12px; }
   .row .url { flex:1; color:var(--sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bar { height:6px; border-radius:4px; background:var(--panel); overflow:hidden; margin-top:7px; }
+  .bar { height:6px; border-radius:4px; background:var(--panel); overflow:hidden; margin-top:8px; }
   .bar > i { display:block; height:100%; background:var(--brand); width:0; transition:width .2s linear; }
-  input { font:inherit; padding:4px 8px; border-radius:6px; border:1px solid var(--line); background:var(--panel); color:inherit; }
-  pre { background:var(--panel); padding:8px; border-radius:6px; white-space:pre-wrap; max-height:220px; overflow:auto; font-size:11.5px; margin:6px 0 0; }
+  pre { background:var(--surface); padding:7px 9px; border-radius:7px; border:1px solid var(--line); white-space:pre-wrap; max-height:200px; overflow:auto; font:11.5px/1.45 ui-monospace,Consolas,monospace; margin:6px 0 0; }
 </style>
 </head>
 <body>
@@ -68,6 +81,28 @@
   <div class="sec" id="sec-available">
     <h2 data-toggle><span class="caret">▸</span> <span id="h-available">可安装</span> <span class="summ" id="available-summ"></span></h2>
     <div class="body" id="available" hidden><div id="cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div><div id="avail-list"></div></div>
+  </div>
+
+  <div class="sec">
+    <h2 style="cursor:default"><span class="caret"> </span> 自定义链接安装</h2>
+    <div class="body"><div class="card"><div class="head">
+      <input id="cid" placeholder="工具 id" style="width:140px">
+      <input id="curl" placeholder="https 直链" class="desc" style="background:var(--panel)">
+      <button id="btn-custom">下载并安装</button>
+    </div></div></div>
+  </div>
+
+  <div class="sec" id="sec-connect">
+    <h2 data-toggle><span class="caret">▸</span> 接入 AI（MCP） <span class="summ" id="connect-summ">让 agent 能调用这些工具</span></h2>
+    <div class="body" id="connect" hidden>
+      <div class="card">
+        <div class="head" style="cursor:default"><button id="btn-copy-mcp">复制配置</button><span class="muted" id="copy-mcp-state"></span></div>
+        <div class="detail" style="display:block">
+          <p class="muted" style="margin:0 0 6px">管理页能跑 ≠ AI 能用。把下面这段加进你的 MCP 客户端（Claude Code / opencode 的配置文件，或 DSH 的 MCP 设置）：</p>
+          <pre id="mcp-config" style="max-height:220px">加载中…</pre>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="sec" id="sec-scripts">
@@ -105,14 +140,6 @@
       </div></div>
     </div>
   </div>
-  <div class="sec">
-    <h2 style="cursor:default"><span class="caret"> </span> 自定义链接安装</h2>
-    <div class="body"><div class="card"><div class="head">
-      <input id="cid" placeholder="工具 id" style="width:140px">
-      <input id="curl" placeholder="https 直链" class="desc" style="background:var(--panel)">
-      <button id="btn-custom">下载并安装</button>
-    </div></div></div>
-  </div>
 </main>
 <script>
 const API = '/api';
@@ -120,7 +147,7 @@ const $ = (id) => document.getElementById(id);
 const kb = (n) => Math.round((n || 0) / 1024) + ' KB';
 const rate = (n) => (n > 0 ? Math.round(n / 1024) + ' KB/s' : '-');
 let job = null;
-const open = { runs: true, env: false, installed: true, available: false, scripts: false, runtimes: false };
+const open = { runs: true, env: false, installed: true, available: false, connect: false, scripts: false, runtimes: false };
 
 async function api(path, init) {
   const res = await fetch(API + path, init);
@@ -477,10 +504,29 @@ $('btn-rt-add').onclick = async () => {
   } catch (e) { show(e.message, true); }
 };
 
+// ---- 接入 AI：Go 服务自己知道可执行文件路径与本机 root ----
+let launcherInfo = null;
+async function loadLauncher() {
+  try {
+    launcherInfo = await api('/launcher');
+    $('mcp-config').textContent = JSON.stringify(launcherInfo.json, null, 2);
+    $('connect-summ').textContent = launcherInfo.command;
+  } catch (e) { $('mcp-config').textContent = '读取失败：' + e.message; }
+}
+$('btn-copy-mcp').onclick = async () => {
+  if (!launcherInfo) return;
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(launcherInfo.json, null, 2));
+    $('copy-mcp-state').textContent = '已复制';
+  } catch (e) { $('copy-mcp-state').textContent = '复制失败，请手动选中文本'; return; }
+  setTimeout(() => { $('copy-mcp-state').textContent = ''; }, 2500);
+};
+
 applyOpen();
 load();
 loadRuns();
 loadRuntimes(false);
+loadLauncher();
 </script>
 </body>
 </html>
