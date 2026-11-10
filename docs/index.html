@@ -168,7 +168,7 @@
 </nav>
 
 <header class="hero wrap">
-  <div class="pill">v0.2.0 · MIT · <b>MCP</b> · Windows / macOS / Linux</div>
+  <div class="pill">v0.3.0 · MIT · <b>MCP</b> · Windows / macOS / Linux</div>
   <h1>让 AI 直接调用 <em>ffmpeg</em>、<em>ripgrep</em>、<em>jq</em>…</h1>
   <p class="lead">
     一个 MCP 服务器 + 一个管理页：按当前系统下载命令行工具、登记成 AI 能直接调用的工具，
@@ -177,7 +177,7 @@
   </p>
   <div class="cta">
     <a class="btn primary" href="#install">开始使用 →</a>
-    <a class="btn" href="https://github.com/haikuotianko/dsh-toolboxes/releases/tag/v0.2.0">查看 Release</a>
+    <a class="btn" href="https://github.com/haikuotianko/dsh-toolboxes/releases/tag/v0.3.0">查看 Release</a>
   </div>
 
   <div class="term">
@@ -224,7 +224,7 @@
     <div class="codewrap">
       <button class="copy">复制</button>
 <pre class="code"><span class="c"># 1. 下载并解压到任意目录，例如 D:\tools\toolbox</span>
-<span class="c">#    https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip</span>
+<span class="c">#    https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-windows-amd64.zip</span>
 <span class="c"># 2. 把该目录加进 PATH，然后：</span>
 toolbox -version
 toolbox -ui        <span class="c"># 打开管理页</span>
@@ -238,7 +238,7 @@ toolbox -setup -patch "&lt;profile&gt;\node_modules\dsh-toolboxes\cordis.patch.y
     <div class="codewrap">
       <button class="copy">复制</button>
 <pre class="code"><span class="c"># Apple Silicon 用 toolbox-darwin-arm64.zip，Intel 用 toolbox-darwin-amd64.zip</span>
-curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip
+curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-darwin-arm64.zip
 unzip -o tb.zip -d ~/bin &amp;&amp; chmod +x ~/bin/toolbox
 <span class="c"># macOS 首次运行若被 Gatekeeper 拦：系统设置 → 隐私与安全性 → 仍要打开</span>
 ~/bin/toolbox -version</pre>
@@ -249,7 +249,7 @@ unzip -o tb.zip -d ~/bin &amp;&amp; chmod +x ~/bin/toolbox
     <div class="codewrap">
       <button class="copy">复制</button>
 <pre class="code"><span class="c"># amd64 / arm64 按机器选</span>
-curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip
+curl -L -o tb.zip https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-linux-amd64.zip
 unzip -o tb.zip -d ~/.local/bin &amp;&amp; chmod +x ~/.local/bin/toolbox
 ~/.local/bin/toolbox -version</pre>
     </div>
@@ -261,7 +261,7 @@ unzip -o tb.zip -d ~/.local/bin &amp;&amp; chmod +x ~/.local/bin/toolbox
 <pre class="code">dsh plugin --profile &lt;profile&gt; add dsh-toolboxes
 
 <span class="c"># 插件首次启用时会按平台下载 Release 里的二进制，校验 SHA256SUMS 后缓存到</span>
-<span class="c">#   &lt;toolbox root&gt;\bin\toolbox-v0.2.0.exe</span>
+<span class="c">#   &lt;toolbox root&gt;\bin\toolbox-v0.3.0.exe</span>
 <span class="c"># 想用自己构建的二进制：设置 TOOLBOX_BIN 指向它</span></pre>
     </div>
   </div>
@@ -278,7 +278,7 @@ mv "$(go env GOPATH)/bin/dsh-toolboxes" "$(go env GOPATH)/bin/toolbox"</pre>
 </section>
 
 <section id="download" class="wrap">
-  <h2>下载 v0.2.0</h2>
+  <h2>下载 v0.3.0</h2>
   <p class="sub">每个包只有一个可执行文件。国内直连 GitHub 慢的话，点「代理下载」——走 gh-proxy 镜像，内容与 SHA256 完全一致。</p>
 
   <div class="dl">
@@ -286,55 +286,55 @@ mv "$(go env GOPATH)/bin/dsh-toolboxes" "$(go env GOPATH)/bin/toolbox"</pre>
       <div class="os">Windows · x64</div>
       <div class="file">toolbox-windows-amd64.zip · 3.62 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-amd64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-windows-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-windows-amd64.zip">直连</a>
       </div>
     </div>
     <div class="item">
       <div class="os">Windows · arm64</div>
       <div class="file">toolbox-windows-arm64.zip · 3.24 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-arm64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-windows-arm64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-windows-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-windows-arm64.zip">直连</a>
       </div>
     </div>
     <div class="item">
       <div class="os">macOS · Apple Silicon</div>
       <div class="file">toolbox-darwin-arm64.zip · 3.32 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-arm64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-darwin-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-darwin-arm64.zip">直连</a>
       </div>
     </div>
     <div class="item">
       <div class="os">macOS · Intel</div>
       <div class="file">toolbox-darwin-amd64.zip · 3.59 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-amd64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-darwin-amd64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-darwin-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-darwin-amd64.zip">直连</a>
       </div>
     </div>
     <div class="item">
       <div class="os">Linux · x64</div>
       <div class="file">toolbox-linux-amd64.zip · 3.54 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-amd64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-linux-amd64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-linux-amd64.zip">直连</a>
       </div>
     </div>
     <div class="item">
       <div class="os">Linux · arm64</div>
       <div class="file">toolbox-linux-arm64.zip · 3.20 MB</div>
       <div class="acts">
-        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-arm64.zip">代理下载</a>
-        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/toolbox-linux-arm64.zip">直连</a>
+        <a class="btn" href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-linux-arm64.zip">代理下载</a>
+        <a class="small" href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/toolbox-linux-arm64.zip">直连</a>
       </div>
     </div>
   </div>
 
   <p class="hint">
-    校验：<a href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/SHA256SUMS">SHA256SUMS（代理）</a>
-    · <a href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.2.0/SHA256SUMS">直连</a>。
+    校验：<a href="https://gh-proxy.com/https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/SHA256SUMS">SHA256SUMS（代理）</a>
+    · <a href="https://github.com/haikuotianko/dsh-toolboxes/releases/download/v0.3.0/SHA256SUMS">直连</a>。
     macOS/Linux 下 <code>shasum -a 256 文件名</code> 比对即可。
   </p>
 </section>

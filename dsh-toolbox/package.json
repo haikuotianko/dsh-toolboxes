@@ -1,6 +1,6 @@
 {
   "name": "dsh-toolboxes",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Toolbox MCP server manager page: installs per-OS CLI tools (ffmpeg / ripgrep / fd / jq / yt-dlp) with multi-source failover, watches the agent's running commands live, and archives reusable scripts.",
   "license": "MIT",
   "type": "module",
