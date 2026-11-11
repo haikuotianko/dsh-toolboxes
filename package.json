@@ -1,0 +1,53 @@
+{
+  "name": "dsh-toolboxes",
+  "version": "0.3.0",
+  "description": "DSH 工具箱插件：让 AI 直接调用 ffmpeg / ripgrep / fd / jq / yt-dlp，并在管理页看到每条命令的实时控制台。",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://github.com/haikuotianko/dsh-toolboxes",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haikuotianko/dsh-toolboxes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/haikuotianko/dsh-toolboxes/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "mcp",
+    "model-context-protocol",
+    "toolbox",
+    "ffmpeg",
+    "ripgrep",
+    "fd",
+    "jq",
+    "yt-dlp"
+  ],
+  "exports": {
+    ".": "./dsh-toolbox/index.js",
+    "./client": "./dsh-toolbox/client.js",
+    "./locale/*.json": "./dsh-toolbox/locale/*.json",
+    "./icon": "./dsh-toolbox/icon.svg"
+  },
+  "files": [
+    "dsh-toolbox/index.js",
+    "dsh-toolbox/client.js",
+    "dsh-toolbox/cordis.patch.yml",
+    "dsh-toolbox/locale/*.json",
+    "dsh-toolbox/icon.svg"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dsh": {
+    "bundle": { "patch": "./dsh-toolbox/cordis.patch.yml" },
+    "engines": { "dsh": ">=0.2.1-rc.2" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-renderer", "@deepseek-ai/dsh-client-ui-layout"]
+    }
+  }
+}

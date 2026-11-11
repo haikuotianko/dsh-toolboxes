@@ -33,7 +33,9 @@ mv "$(go env GOPATH)/bin/dsh-toolboxes" "$(go env GOPATH)/bin/toolbox"   # Windo
 **方式三：DSH 插件**（带管理页，自动准备二进制）
 
 ```bash
-dsh plugin --profile <profile> add dsh-toolboxes
+dsh plugin --profile web add dsh-toolboxes
+# 不想走 npm、直接装源码也可以：
+# dsh plugin --profile web add github:haikuotianko/dsh-toolboxes
 ```
 
 > 插件在首次使用时从 GitHub Releases 下载匹配平台的二进制，校验 `SHA256SUMS` 后缓存到 `<toolbox root>/bin/`。想用自己的构建，设 `TOOLBOX_BIN` 指向它即可。

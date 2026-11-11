@@ -30,6 +30,13 @@ jobs:
           node --check dsh-toolbox/client.js
       - name: 页面冒烟渲染
         run: node _scripts/ui-smoke.mjs
+      - name: 根 package.json 与插件包的版本一致
+        run: |
+          set -euo pipefail
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          PLUGIN_VERSION=$(node -p "require('./dsh-toolbox/package.json').version")
+          echo "root=$ROOT_VERSION plugin=$PLUGIN_VERSION"
+          [ "$ROOT_VERSION" = "$PLUGIN_VERSION" ] || { echo "::error::根 package.json 与 dsh-toolbox/package.json 版本不一致"; exit 1; }
       - name: 打包内容检查（不带二进制）
         run: |
           cd dsh-toolbox
