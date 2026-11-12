@@ -206,7 +206,7 @@ document.querySelectorAll('h2[data-toggle]').forEach((h) => h.addEventListener('
 function card(id, title, desc, extra) {
   const box = el('div', { class: 'card' });
   const head = el('div', { class: 'head' }, el('span', { class: 'caret' }, '>'), el('span', { class: 'title' }, title), el('span', { class: 'desc' }, desc || ''));
-  for (const node of (extra || [])) head.append(node);
+  for (const node of (extra || [])) if (node) head.append(node);
   const detail = el('div', { class: 'detail' });
   head.addEventListener('click', (event) => {
     if (event.target.closest('button, input')) return;

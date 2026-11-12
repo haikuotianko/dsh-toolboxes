@@ -107,8 +107,12 @@ func runHTTP(ctx context.Context, service *mcpserver.Service, addr string) {
 	if err != nil {
 		log.Fatalf("toolbox: listen %s: %v", addr, err)
 	}
+	api := httpapi.New(service)
+	// Serve the manager page here too: -http is what headless/remote setups use,
+	// and the page is the same loopback API client.
+	api.UI = uiHTML()
 	server := &http.Server{
-		Handler:           httpapi.New(service).Handler(),
+		Handler:           api.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	go func() {
