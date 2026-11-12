@@ -6,6 +6,8 @@
 
 **官网**：<https://haikuotianko.github.io/dsh-toolboxes/>（国内打不开可用 [jsDelivr 镜像](https://cdn.jsdelivr.net/gh/haikuotianko/dsh-toolboxes@main/docs/index.html)；源码在 [`docs/`](docs/)）
 
+> ⚠️ **它会下载并执行第三方程序**：ffmpeg / ripgrep / jq 等二进制从目录条目里的 URL 下载后直接运行，**不经过任何沙箱**，权限等于运行它的用户。目录条目可声明 `sha256`，装了就会在解包/执行前校验；请只使用你信任的下载源。详见[安全模型](#安全模型)。
+
 一个可移植的 **MCP 工具箱**：把 ffmpeg / ripgrep / fd / jq / yt-dlp 这类命令行工具，按当前系统下载、安装、登记成 AI 可以直接调用的工具，并有一个能看**实时控制台**的管理页。
 
 MCP 优先的原因：同一份服务可以同时给 **DeepSeek Harness**、**opencode**、**Claude Code**、**Codex** 用，不用为每个宿主重写一遍工具层。
